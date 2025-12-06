@@ -1,7 +1,6 @@
 "use client"
 
 import Link from "next/link"
-import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { Menu, ExternalLink } from "lucide-react"
 
@@ -11,86 +10,82 @@ import {
   SheetContent,
   SheetTrigger,
 } from "@/components/ui/sheet"
+import { WalletConnectButton } from "@/components/connect-button"
 
 const navLinks = [
-  { name: "Home", href: "/" },
-  { name: "Docs", href: "https://docs.celo.org", external: true },
+  { name: "Hunts", href: "/" },
+  { name: "Create", href: "/create" },
+  { name: "Leaderboard", href: "/leaderboard" },
 ]
 
 export function Navbar() {
   const pathname = usePathname()
   
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 max-w-screen-2xl items-center justify-between px-4">
-        <div className="flex items-center gap-2">
+    <header className="sticky top-0 z-50 w-full border-b-4 border-celo-purple bg-celo-yellow">
+      <div className="container flex h-20 max-w-screen-2xl items-center justify-between px-6">
+        <div className="flex items-center gap-4">
           {/* Mobile menu button */}
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="md:hidden">
-                <Menu className="h-5 w-5" />
+              <Button variant="ghost" size="icon" className="md:hidden border-2 border-celo-purple bg-transparent hover:bg-celo-purple hover:text-celo-yellow">
+                <Menu className="h-6 w-6" />
                 <span className="sr-only">Toggle menu</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-80">
+            <SheetContent side="left" className="w-80 bg-celo-tan-light border-r-4 border-celo-purple">
               <div className="flex items-center gap-2 mb-8">
-
-                <span className="font-bold text-lg">
-                  farcaster-miniapp
+                <span className="text-display text-3xl font-display font-light italic text-celo-purple">
+                  PathFinderX
                 </span>
               </div>
-              <nav className="flex flex-col gap-4">
+              <nav className="flex flex-col gap-2">
                 {navLinks.map((link) => (
                   <Link
                     key={link.href}
                     href={link.href}
-                    target={link.external ? "_blank" : undefined}
-                    rel={link.external ? "noopener noreferrer" : undefined}
-                    className={`flex items-center gap-2 text-base font-medium transition-colors hover:text-primary ${
-                      pathname === link.href ? "text-foreground" : "text-foreground/70"
+                    className={`block px-4 py-3 border-2 border-celo-purple text-body-bold text-base transition-all ${
+                      pathname === link.href
+                        ? "bg-celo-purple text-celo-yellow"
+                        : "bg-transparent text-celo-purple hover:bg-celo-purple hover:text-celo-yellow"
                     }`}
                   >
                     {link.name}
-                    {link.external && <ExternalLink className="h-4 w-4" />}
                   </Link>
                 ))}
-                <div className="mt-6 pt-6 border-t">
-                  <Button className="w-full">Connect Wallet</Button>
+                <div className="mt-6 pt-6 border-t-2 border-celo-purple">
+                  <WalletConnectButton />
                 </div>
               </nav>
             </SheetContent>
           </Sheet>
 
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-
-            <span className="hidden font-bold text-xl sm:inline-block">
-              farcaster-miniapp
+          <Link href="/" className="flex items-center hover:opacity-90 transition-opacity">
+            <span className="text-display text-2xl sm:text-3xl font-display font-light italic text-celo-purple">
+              PathFinderX
             </span>
           </Link>
         </div>
         
         {/* Desktop navigation */}
-        <nav className="hidden md:flex items-center gap-8">
+        <nav className="hidden md:flex items-center gap-4">
           {navLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              target={link.external ? "_blank" : undefined}
-              rel={link.external ? "noopener noreferrer" : undefined}
-              className={`flex items-center gap-1.5 text-sm font-medium transition-colors hover:text-primary ${
+              className={`px-4 py-2 border-2 border-celo-purple text-body-bold text-sm transition-all ${
                 pathname === link.href
-                  ? "text-foreground"
-                  : "text-foreground/70"
+                  ? "bg-celo-purple text-celo-yellow"
+                  : "bg-transparent text-celo-purple hover:bg-celo-purple hover:text-celo-yellow"
               }`}
             >
               {link.name}
-              {link.external && <ExternalLink className="h-4 w-4" />}
             </Link>
           ))}
           
-          <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm">Connect Wallet</Button>
+          <div className="ml-4">
+            <WalletConnectButton />
           </div>
         </nav>
       </div>

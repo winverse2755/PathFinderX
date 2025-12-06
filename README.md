@@ -1,48 +1,66 @@
-# farcaster-miniapp
+## Foundry
 
-A gamified treasure-hunt protocol that turns the world into an interactive playground. Players follow clues, complete challenges, and claim rewards — all secured transparently on Celo
+**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
 
-A modern Celo blockchain application built with Next.js, TypeScript, and Turborepo.
+Foundry consists of:
 
-## Getting Started
+- **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
+- **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
+- **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
+- **Chisel**: Fast, utilitarian, and verbose solidity REPL.
 
-1. Install dependencies:
-   ```bash
-   pnpm install
-   ```
+## Documentation
 
-2. Start the development server:
-   ```bash
-   pnpm dev
-   ```
+https://book.getfoundry.sh/
 
-3. Open [http://localhost:3000](http://localhost:3000) in your browser.
+## Usage
 
-## Project Structure
+### Build
 
-This is a monorepo managed by Turborepo with the following structure:
+```shell
+$ forge build
+```
 
-- `apps/web` - Next.js application with embedded UI components and utilities
+### Test
 
-## Available Scripts
+```shell
+$ forge test
+```
 
-- `pnpm dev` - Start development servers
-- `pnpm build` - Build all packages and apps
-- `pnpm lint` - Lint all packages and apps
-- `pnpm type-check` - Run TypeScript type checking
+### Format
 
-## Tech Stack
+```shell
+$ forge fmt
+```
 
-- **Framework**: Next.js 14 with App Router
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **UI Components**: shadcn/ui
-- **Monorepo**: Turborepo
-- **Package Manager**: PNPM
+### Gas Snapshots
 
-## Learn More
+```shell
+$ forge snapshot
+```
 
-- [Next.js Documentation](https://nextjs.org/docs)
-- [Celo Documentation](https://docs.celo.org/)
-- [Turborepo Documentation](https://turbo.build/repo/docs)
-- [shadcn/ui Documentation](https://ui.shadcn.com/)
+### Anvil
+
+```shell
+$ anvil
+```
+
+### Deploy
+
+```shell
+$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
+```
+
+### Cast
+
+```shell
+$ cast <subcommand>
+```
+
+### Help
+
+```shell
+$ forge --help
+$ anvil --help
+$ cast --help
+```

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useAccount, useConnect, useDisconnect } from 'wagmi'
 import { useMiniApp } from '@/contexts/miniapp-context'
+import { Button } from './ui/button'
 
 export function WalletConnectButton() {
   const [mounted, setMounted] = useState(false)
@@ -17,42 +18,42 @@ export function WalletConnectButton() {
 
   if (!mounted) {
     return (
-      <button className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">
+      <Button variant="outline" size="sm">
         Connect Wallet
-      </button>
+      </Button>
     )
   }
 
   if (!isConnected) {
-    const frameConnector = connectors.find(connector => connector.id === 'frameWallet')
+    const farcasterConnector = connectors.find(connector => connector.id === 'farcaster')
     
     return (
-      <button
-        onClick={() => frameConnector && connect({ connector: frameConnector })}
-        type="button"
-        className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
+      <Button
+        onClick={() => farcasterConnector && connect({ connector: farcasterConnector })}
+        variant="outline"
+        size="sm"
       >
         Connect Wallet
-      </button>
+      </Button>
     )
   }
 
   return (
     <div className="flex items-center gap-2">
-      <button
-        type="button"
-        className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-3 py-2"
+      <Button
+        variant="secondary"
+        size="sm"
       >
         Celo
-      </button>
+      </Button>
 
-      <button
+      <Button
         onClick={() => disconnect()}
-        type="button"
-        className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
+        variant="outline"
+        size="sm"
       >
         {address ? `${address.slice(0, 6)}...${address.slice(-4)}` : 'Connected'}
-      </button>
+      </Button>
     </div>
   )
 }

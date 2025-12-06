@@ -1,169 +1,135 @@
 "use client";
+
 import { useMiniApp } from "@/contexts/miniapp-context";
-import { sdk } from "@farcaster/frame-sdk";
-import { useState, useEffect } from "react";
-import { useAccount, useConnect } from "wagmi";
+import { useAccount } from "wagmi";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { useTotalHunts, useHunt } from "@/hooks/use-treasure-hunt";
+import { formatCUSD } from "@/lib/treasure-hunt-utils";
 
 export default function Home() {
   const { context, isMiniAppReady } = useMiniApp();
-  const [isAddingMiniApp, setIsAddingMiniApp] = useState(false);
-  const [addMiniAppMessage, setAddMiniAppMessage] = useState<string | null>(null);
-  
-  // Wallet connection hooks
-  const { address, isConnected, isConnecting } = useAccount();
-  const { connect, connectors } = useConnect();
-  
-  // Auto-connect wallet when miniapp is ready
+  const { address, isConnected } = useAccount();
+  const { totalHunts } = useTotalHunts();
+  const [huntIds, setHuntIds] = useState<number[]>([]);
+
+  // Fetch all hunt IDs
   useEffect(() => {
-    if (isMiniAppReady && !isConnected && !isConnecting && connectors.length > 0) {
-      const farcasterConnector = connectors.find(c => c.id === 'farcaster');
-      if (farcasterConnector) {
-        connect({ connector: farcasterConnector });
-      }
+    if (totalHunts > 0) {
+      const ids = Array.from({ length: totalHunts }, (_, i) => i);
+      setHuntIds(ids);
     }
-  }, [isMiniAppReady, isConnected, isConnecting, connectors, connect]);
-  
-  // Extract user data from context
-  const user = context?.user;
-  // Use connected wallet address if available, otherwise fall back to user custody/verification
-  const walletAddress = address || user?.custody || user?.verifications?.[0] || "0x1e4B...605B";
-  const displayName = user?.displayName || user?.username || "User";
-  const username = user?.username || "@user";
-  const pfpUrl = user?.pfpUrl;
-  
-  // Format wallet address to show first 6 and last 4 characters
-  const formatAddress = (address: string) => {
-    if (!address || address.length < 10) return address;
-    return `${address.slice(0, 6)}...${address.slice(-4)}`;
-  };
-  
+  }, [totalHunts]);
+
   if (!isMiniAppReady) {
     return (
       <main className="flex-1">
-        <section className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-          <div className="w-full max-w-md mx-auto p-8 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading...</p>
+        <section className="flex items-center justify-center min-h-screen bg-celo-tan-light">
+          <div className="w-full max-w-md mx-auto p-8 text-center border-4 border-celo-purple bg-white">
+            <div className="animate-spin h-12 w-12 border-4 border-celo-purple border-t-celo-yellow mx-auto mb-4"></div>
+            <p className="text-body-bold text-celo-purple">Loading...</p>
           </div>
         </section>
       </main>
     );
   }
-  
+
   return (
-    <main className="flex-1">
-      <section className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="w-full max-w-md mx-auto p-8 text-center">
-          {/* Welcome Header */}
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Welcome
+    <main className="flex-1 bg-celo-tan-light">
+      <div className="container mx-auto px-6 py-12 max-w-7xl">
+        {/* Hero Section */}
+        <div className="mb-16 border-4 border-celo-purple bg-celo-yellow p-8 md:p-12">
+          <h1 className="text-display text-5xl md:text-7xl font-display font-light italic text-celo-purple mb-4 leading-tight">
+            Treasure <span className="not-italic">Hunt</span>
           </h1>
-          
-          {/* Status Message */}
-          <p className="text-lg text-gray-600 mb-6">
-            You are signed in!
+          <p className="text-body-bold text-xl md:text-2xl text-celo-purple max-w-2xl">
+            Discover clues, solve puzzles, and earn cUSD rewards on Celo.
           </p>
-          
-          {/* User Wallet Address */}
-          <div className="mb-8">
-            <div className="bg-white/20 backdrop-blur-sm px-4 py-3 rounded-lg">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-gray-600 font-medium">Wallet Status</span>
-                <div className={`flex items-center gap-1 text-xs ${
-                  isConnected ? 'text-green-600' : isConnecting ? 'text-yellow-600' : 'text-gray-500'
-                }`}>
-                  <div className={`w-2 h-2 rounded-full ${
-                    isConnected ? 'bg-green-500' : isConnecting ? 'bg-yellow-500' : 'bg-gray-400'
-                  }`}></div>
-                  {isConnected ? 'Connected' : isConnecting ? 'Connecting...' : 'Disconnected'}
-                </div>
-              </div>
-              <p className="text-sm text-gray-700 font-mono">
-                {formatAddress(walletAddress)}
-              </p>
-            </div>
-          </div>
-          
-          {/* User Profile Section */}
-          <div className="mb-8">
-            {/* Profile Avatar */}
-            <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center overflow-hidden">
-              {pfpUrl ? (
-                <img 
-                  src={pfpUrl} 
-                  alt="Profile" 
-                  className="w-full h-full object-cover rounded-full"
-                />
-              ) : (
-                <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center">
-                  <div className="w-3 h-3 bg-green-400 rounded-full"></div>
-                </div>
-              )}
-            </div>
-            
-            {/* Profile Info */}
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-1">
-                {displayName}
-              </h2>
-              <p className="text-gray-500">
-                {username.startsWith('@') ? username : `@${username}`}
-              </p>
-            </div>
-          </div>
-          
-          {/* Add Miniapp Button */}
-          <div className="mb-6">
-            <button
-              onClick={async () => {
-                if (isAddingMiniApp) return;
-                
-                setIsAddingMiniApp(true);
-                setAddMiniAppMessage(null);
-                
-                try {
-                  const result = await sdk.actions.addMiniApp();
-                  if (result.added) {
-                    setAddMiniAppMessage("✅ Miniapp added successfully!");
-                  } else {
-                    setAddMiniAppMessage("ℹ️ Miniapp was not added (user declined or already exists)");
-                  }
-                } catch (error: any) {
-                  console.error('Add miniapp error:', error);
-                  if (error?.message?.includes('domain')) {
-                    setAddMiniAppMessage("⚠️ This miniapp can only be added from its official domain");
-                  } else {
-                    setAddMiniAppMessage("❌ Failed to add miniapp. Please try again.");
-                  }
-                } finally {
-                  setIsAddingMiniApp(false);
-                }
-              }}
-              disabled={isAddingMiniApp}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
-            >
-              {isAddingMiniApp ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  Adding...
-                </>
-              ) : (
-                <>
-                  <span>📱</span>
-                  Add Miniapp
-                </>
-              )}
-            </button>
-            
-            {/* Add Miniapp Status Message */}
-            {addMiniAppMessage && (
-              <div className="mt-3 p-3 bg-white/30 backdrop-blur-sm rounded-lg">
-                <p className="text-sm text-gray-700">{addMiniAppMessage}</p>
-              </div>
-            )}
-          </div>
         </div>
-      </section>
+
+        {/* Action Buttons */}
+        <div className="mb-12 flex flex-wrap gap-4">
+          <Link href="/create">
+            <Button size="lg" className="border-4">
+              Create Hunt
+            </Button>
+          </Link>
+          <Link href="/leaderboard">
+            <Button variant="outline" size="lg" className="border-4">
+              Leaderboard
+            </Button>
+          </Link>
+        </div>
+
+        {/* Hunts Grid */}
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {huntIds.length === 0 ? (
+            <div className="col-span-full border-4 border-celo-purple bg-white p-12 text-center">
+              <p className="text-body-bold text-2xl text-celo-purple mb-2">No hunts available yet.</p>
+              <p className="text-body-bold text-lg text-celo-brown">Be the first to create one!</p>
+            </div>
+          ) : (
+            huntIds.map((huntId) => (
+              <HuntCard key={huntId} huntId={huntId} />
+            ))
+          )}
+        </div>
+      </div>
     </main>
+  );
+}
+
+function HuntCard({ huntId }: { huntId: number }) {
+  const { hunt } = useHunt(huntId);
+
+  if (!hunt || !hunt.exists) {
+    return null;
+  }
+
+  if (!hunt.published) {
+    return null; // Don't show unpublished hunts
+  }
+
+  const totalReward = formatCUSD(hunt.totalRewards);
+  const isActive =
+    hunt.startTime <= BigInt(Math.floor(Date.now() / 1000)) &&
+    (hunt.endTime === BigInt(0) || hunt.endTime >= BigInt(Math.floor(Date.now() / 1000)));
+
+  return (
+    <Card className="hover:border-celo-yellow transition-all">
+      <CardHeader>
+        <CardTitle className="line-clamp-2">{hunt.title}</CardTitle>
+        <CardDescription className="line-clamp-2">{hunt.description}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          <div className="flex justify-between items-center border-2 border-celo-purple bg-celo-tan-light p-3">
+            <span className="text-body-bold text-celo-purple">Clues:</span>
+            <span className="text-body-bold text-lg text-celo-purple">{Number(hunt.clueCount)}</span>
+          </div>
+          <div className="flex justify-between items-center border-2 border-celo-green bg-celo-green/10 p-3">
+            <span className="text-body-bold text-celo-purple">Reward:</span>
+            <span className="text-body-bold text-lg text-celo-green">{totalReward} cUSD</span>
+          </div>
+          <div className="flex justify-between items-center border-2 border-celo-purple bg-celo-tan-medium p-3">
+            <span className="text-body-bold text-celo-purple">Status:</span>
+            <span
+              className={`text-body-bold text-lg ${
+                isActive ? "text-celo-green" : "text-celo-brown"
+              }`}
+            >
+              {isActive ? "ACTIVE" : "ENDED"}
+            </span>
+          </div>
+          <Link href={`/hunt/${huntId}`} className="block">
+            <Button className="w-full border-4" size="lg">
+              {isActive ? "Start Hunt" : "View Details"}
+            </Button>
+          </Link>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

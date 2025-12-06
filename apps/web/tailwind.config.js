@@ -15,39 +15,68 @@ module.exports = {
     },
     extend: {
       colors: {
-        border: "hsl(var(--border))",
-        input: "hsl(var(--input))",
-        ring: "hsl(var(--ring))",
-        background: "hsl(var(--background))",
-        foreground: "hsl(var(--foreground))",
+        // Celo Brand Colors
+        celo: {
+          yellow: "#FCFF52",
+          green: "#4E632A",
+          purple: "#1A0329",
+          tan: {
+            light: "#FBF6F1",
+            medium: "#E6E3D5",
+          },
+          brown: "#635949",
+          pink: "#F2A9E7",
+          orange: "#F29E5F",
+          lime: "#B2EBA1",
+          blue: "#8AC0F9",
+        },
+        border: "#1A0329",
+        input: "#E6E3D5",
+        ring: "#FCFF52",
+        background: "#FBF6F1",
+        foreground: "#1A0329",
         primary: {
-          DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
+          DEFAULT: "#FCFF52",
+          foreground: "#1A0329",
         },
         secondary: {
-          DEFAULT: "hsl(var(--secondary))",
-          foreground: "hsl(var(--secondary-foreground))",
+          DEFAULT: "#4E632A",
+          foreground: "#FCFF52",
         },
         destructive: {
-          DEFAULT: "hsl(var(--destructive))",
-          foreground: "hsl(var(--destructive-foreground))",
+          DEFAULT: "#F29E5F",
+          foreground: "#1A0329",
         },
         muted: {
-          DEFAULT: "hsl(var(--muted))",
-          foreground: "hsl(var(--muted-foreground))",
+          DEFAULT: "#E6E3D5",
+          foreground: "#635949",
         },
         accent: {
-          DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))",
+          DEFAULT: "#F2A9E7",
+          foreground: "#1A0329",
         },
         popover: {
-          DEFAULT: "hsl(var(--popover))",
-          foreground: "hsl(var(--popover-foreground))",
+          DEFAULT: "#FBF6F1",
+          foreground: "#1A0329",
         },
         card: {
-          DEFAULT: "hsl(var(--card))",
-          foreground: "hsl(var(--card-foreground))",
+          DEFAULT: "#FFFFFF",
+          foreground: "#1A0329",
         },
+      },
+      fontFamily: {
+        display: ['var(--font-display)', 'serif'],
+        body: ['var(--font-body)', 'sans-serif'],
+      },
+      fontSize: {
+        'display-xl': ['4rem', { lineHeight: '1', letterSpacing: '-0.02em' }],
+        'display-lg': ['3rem', { lineHeight: '1.1', letterSpacing: '-0.02em' }],
+        'display-md': ['2.25rem', { lineHeight: '1.2', letterSpacing: '-0.01em' }],
+        'display-sm': ['1.875rem', { lineHeight: '1.3', letterSpacing: '-0.01em' }],
+      },
+      borderRadius: {
+        none: '0',
+        DEFAULT: '0',
       },
       keyframes: {
         "accordion-down": {
