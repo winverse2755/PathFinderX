@@ -1,0 +1,23 @@
+{
+  "name": "farcaster-miniapp",
+  "version": "0.1.0",
+  "description": "A gamified treasure-hunt protocol that turns the world into an interactive playground. Players follow clues, complete challenges, and claim rewards — all secured transparently on Celo",
+  "private": true,
+  "scripts": {
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "lint": "turbo lint",
+    "clean": "turbo clean",
+    "type-check": "turbo type-check"
+  },
+  "devDependencies": {
+    "@types/node": "^20.8.0",
+    "turbo": "^1.10.16",
+    "typescript": "^5.2.2"
+  },
+  "packageManager": "pnpm@8.10.0",
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  }
+}
