@@ -6,22 +6,13 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useTotalHunts, useHunt } from "@/hooks/use-treasure-hunt";
+import { useBrowseHunts } from "@/hooks/use-treasure-hunt";
 import { formatCUSD } from "@/lib/treasure-hunt-utils";
 
 export default function Home() {
   const { context, isMiniAppReady } = useMiniApp();
   const { address, isConnected } = useAccount();
-  const { totalHunts } = useTotalHunts();
-  const [huntIds, setHuntIds] = useState<number[]>([]);
-
-  // Fetch all hunt IDs
-  useEffect(() => {
-    if (totalHunts > 0) {
-      const ids = Array.from({ length: totalHunts }, (_, i) => i);
-      setHuntIds(ids);
-    }
-  }, [totalHunts]);
+  const { hunts } = useBrowseHunts();
 
   if (!isMiniAppReady) {
     return (
@@ -37,10 +28,10 @@ export default function Home() {
   }
 
   return (
-    <main className="flex-1 bg-celo-tan-light">
+    <main className="flex-1 bg-celo-tan-light min-h-screen">
       <div className="container mx-auto px-6 py-12 max-w-7xl">
         {/* Hero Section */}
-        <div className="mb-16 border-4 border-celo-purple bg-celo-yellow p-8 md:p-12">
+        <div className="mb-16 border-4 border-celo-purple bg-celo-yellow p-8 md:p-12 animate-fade-in shadow-lg hover-lift">
           <h1 className="text-display text-5xl md:text-7xl font-display font-light italic text-celo-purple mb-4 leading-tight">
             Treasure <span className="not-italic">Hunt</span>
           </h1>
@@ -50,14 +41,14 @@ export default function Home() {
         </div>
 
         {/* Action Buttons */}
-        <div className="mb-12 flex flex-wrap gap-4">
+        <div className="mb-12 flex flex-wrap gap-4 animate-slide-in">
           <Link href="/create">
-            <Button size="lg" className="border-4">
+            <Button size="lg" className="border-4 transition-premium hover-lift">
               Create Hunt
             </Button>
           </Link>
           <Link href="/leaderboard">
-            <Button variant="outline" size="lg" className="border-4">
+            <Button variant="outline" size="lg" className="border-4 transition-premium hover-lift">
               Leaderboard
             </Button>
           </Link>
@@ -65,14 +56,16 @@ export default function Home() {
 
         {/* Hunts Grid */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {huntIds.length === 0 ? (
-            <div className="col-span-full border-4 border-celo-purple bg-white p-12 text-center">
+          {hunts.length === 0 ? (
+            <div className="col-span-full border-4 border-celo-purple bg-white p-12 text-center animate-fade-in">
               <p className="text-body-bold text-2xl text-celo-purple mb-2">No hunts available yet.</p>
               <p className="text-body-bold text-lg text-celo-brown">Be the first to create one!</p>
             </div>
           ) : (
-            huntIds.map((huntId) => (
-              <HuntCard key={huntId} huntId={huntId} />
+            hunts.map((hunt, index) => (
+              <div key={hunt.id} className="animate-scale-in" style={{ animationDelay: `${index * 0.1}s` }}>
+                <HuntCard hunt={hunt} />
+              </div>
             ))
           )}
         </div>
@@ -81,51 +74,33 @@ export default function Home() {
   );
 }
 
-function HuntCard({ huntId }: { huntId: number }) {
-  const { hunt } = useHunt(huntId);
-
-  if (!hunt || !hunt.exists) {
-    return null;
-  }
-
-  if (!hunt.published) {
-    return null; // Don't show unpublished hunts
-  }
-
-  const totalReward = formatCUSD(hunt.totalRewards);
-  const isActive =
-    hunt.startTime <= BigInt(Math.floor(Date.now() / 1000)) &&
-    (hunt.endTime === BigInt(0) || hunt.endTime >= BigInt(Math.floor(Date.now() / 1000)));
+function HuntCard({ hunt }: { hunt: { id: number; title: string; description: string; reward: bigint; clueCount: number; participants: number } }) {
+  const totalReward = formatCUSD(hunt.reward);
+  const isActive = true; // All hunts from browseHunts are active
 
   return (
-    <Card className="hover:border-celo-yellow transition-all">
-      <CardHeader>
-        <CardTitle className="line-clamp-2">{hunt.title}</CardTitle>
-        <CardDescription className="line-clamp-2">{hunt.description}</CardDescription>
+    <Card className="hover:border-celo-yellow transition-premium hover-lift group">
+      <CardHeader className="border-b-4 border-celo-purple">
+        <CardTitle className="line-clamp-2 group-hover:text-celo-green transition-colors">{hunt.title}</CardTitle>
+        <CardDescription className="line-clamp-2 mt-2">{hunt.description}</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-6">
         <div className="space-y-4">
-          <div className="flex justify-between items-center border-2 border-celo-purple bg-celo-tan-light p-3">
+          <div className="flex justify-between items-center border-2 border-celo-purple bg-celo-tan-light p-4 transition-premium group-hover:border-celo-yellow group-hover:bg-celo-yellow/20">
             <span className="text-body-bold text-celo-purple">Clues:</span>
-            <span className="text-body-bold text-lg text-celo-purple">{Number(hunt.clueCount)}</span>
+            <span className="text-body-bold text-lg text-celo-purple font-bold">{hunt.clueCount}</span>
           </div>
-          <div className="flex justify-between items-center border-2 border-celo-green bg-celo-green/10 p-3">
+          <div className="flex justify-between items-center border-2 border-celo-green bg-celo-green/10 p-4 transition-premium group-hover:border-celo-green group-hover:bg-celo-green/20">
             <span className="text-body-bold text-celo-purple">Reward:</span>
-            <span className="text-body-bold text-lg text-celo-green">{totalReward} cUSD</span>
+            <span className="text-body-bold text-lg text-celo-green font-bold">{totalReward} cUSD</span>
           </div>
-          <div className="flex justify-between items-center border-2 border-celo-purple bg-celo-tan-medium p-3">
-            <span className="text-body-bold text-celo-purple">Status:</span>
-            <span
-              className={`text-body-bold text-lg ${
-                isActive ? "text-celo-green" : "text-celo-brown"
-              }`}
-            >
-              {isActive ? "ACTIVE" : "ENDED"}
-            </span>
+          <div className="flex justify-between items-center border-2 border-celo-purple bg-celo-tan-dark p-4 transition-premium group-hover:border-celo-purple group-hover:bg-celo-purple/10">
+            <span className="text-body-bold text-celo-purple">Participants:</span>
+            <span className="text-body-bold text-lg text-celo-purple font-bold">{hunt.participants}</span>
           </div>
-          <Link href={`/hunt/${huntId}`} className="block">
-            <Button className="w-full border-4" size="lg">
-              {isActive ? "Start Hunt" : "View Details"}
+          <Link href={`/hunt/${hunt.id}`} className="block">
+            <Button className="w-full border-4 transition-premium hover-lift" size="lg">
+              Start Hunt
             </Button>
           </Link>
         </div>

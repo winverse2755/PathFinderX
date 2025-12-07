@@ -3,6 +3,7 @@ import { Inter, Playfair_Display } from 'next/font/google';
 import './globals.css';
 
 import { Navbar } from '@/components/navbar';
+import { ChainStatusBanner } from '@/components/chain-status-banner';
 import Providers from "@/components/providers"
 
 const inter = Inter({ 
@@ -61,6 +62,7 @@ export default function RootLayout({
         <div className="relative flex min-h-screen flex-col bg-celo-tan-light">
           <Providers>
             <Navbar />
+            <ChainStatusBanner />
             <main className="flex-1">
               {children}
             </main>

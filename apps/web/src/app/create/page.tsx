@@ -9,18 +9,16 @@ import {
   useIsCreator,
   useRegisterCreator,
   useCreateHunt,
-  useAddClue,
+  useAddClueWithGeneratedQr,
   useFundHunt,
   usePublishHunt,
-  useHunt,
+  useSelectHunt,
   useCUSDBalance,
   useCUSDAllowance,
   useApproveCUSD,
 } from "@/hooks/use-treasure-hunt";
 import { formatCUSD, parseCUSD, validateReward } from "@/lib/treasure-hunt-utils";
-import { TREASURE_HUNT_CONTRACT, CUSD_ADDRESS } from "@/lib/constants";
-import { generateQRCodeURL } from "@/lib/constants";
-import { hashAnswer } from "@/lib/treasure-hunt-utils";
+import { TREASURE_HUNT_CREATOR_ADDRESS, CUSD_ADDRESS } from "@/lib/contract-abis";
 import QRCode from "qrcode";
 
 type ClueData = {
@@ -38,7 +36,7 @@ export default function CreateHuntPage() {
     useRegisterCreator();
   const { createHunt, isPending: isCreating, isConfirmed: huntCreated, hash: createHash } =
     useCreateHunt();
-  const { addClue, isPending: isAddingClue, isConfirmed: clueAdded } = useAddClue();
+  const { addClueWithGeneratedQr, isPending: isAddingClue, isConfirmed: clueAdded } = useAddClueWithGeneratedQr();
   const { fundHunt, isPending: isFunding, isConfirmed: huntFunded } = useFundHunt();
   const { publishHunt, isPending: isPublishing, isConfirmed: huntPublished } = usePublishHunt();
   const { approveCUSD, isPending: isApproving, isConfirmed: cUSDApproved } = useApproveCUSD();
@@ -59,14 +57,12 @@ export default function CreateHuntPage() {
   });
   const [qrCodes, setQrCodes] = useState<string[]>([]);
 
-  const { hunt } = useHunt(huntId);
+  const { hunt } = useSelectHunt(huntId);
   const totalRewards = clues.reduce(
     (sum, clue) => sum + parseCUSD(clue.reward),
     BigInt(0)
   );
-  const { allowance } = useCUSDAllowance(
-    TREASURE_HUNT_CONTRACT ? (TREASURE_HUNT_CONTRACT as `0x${string}`) : undefined
-  );
+  const { allowance } = useCUSDAllowance(TREASURE_HUNT_CREATOR_ADDRESS);
 
   // Auto-advance steps
   if (!isCreator && step === "register" && isRegistered) {
@@ -100,7 +96,8 @@ export default function CreateHuntPage() {
       alert("Description too long (max 500 characters)");
       return;
     }
-    createHunt(huntTitle, huntDescription, BigInt(0), BigInt(0));
+    // Note: New contract only takes title and description
+    createHunt(huntTitle, huntDescription);
     // Note: In production, you'd listen to the HuntCreated event to get the huntId
     // For now, we'll use a workaround - you'll need to manually enter the hunt ID
     // or implement event listening
@@ -116,8 +113,8 @@ export default function CreateHuntPage() {
       alert("Please enter clue text");
       return;
     }
-    if (!currentClue.answer.trim()) {
-      alert("Please enter an answer");
+    if (!currentClue.location.trim()) {
+      alert("Please enter a location");
       return;
     }
 
@@ -126,7 +123,9 @@ export default function CreateHuntPage() {
       return;
     }
 
-    addClue(huntId, currentClue.clueText, currentClue.answer, currentClue.reward, currentClue.location);
+    // Note: addClueWithGeneratedQr returns a QR string, but we can't capture it from the hook
+    // The contract generates the QR internally and stores it
+    addClueWithGeneratedQr(huntId, currentClue.clueText, currentClue.reward, currentClue.location);
     
     // Add to local state
     setClues([...clues, { ...currentClue }]);
@@ -148,7 +147,7 @@ export default function CreateHuntPage() {
     if (allowance < totalRewards) {
       // First approve
       approveCUSD(
-        TREASURE_HUNT_CONTRACT as `0x${string}`,
+        TREASURE_HUNT_CREATOR_ADDRESS,
         totalRewards * BigInt(2) // Approve 2x to be safe
       );
       return;
@@ -169,18 +168,10 @@ export default function CreateHuntPage() {
   const generateQRCodes = async () => {
     if (huntId === null) return;
 
-    const codes: string[] = [];
-    for (let i = 0; i < clues.length; i++) {
-      const answerHash = hashAnswer(clues[i].answer);
-      const url = generateQRCodeURL(huntId, i, answerHash);
-      try {
-        const qrDataUrl = await QRCode.toDataURL(url, { width: 300 });
-        codes.push(qrDataUrl);
-      } catch (err) {
-        console.error("Failed to generate QR code:", err);
-      }
-    }
-    setQrCodes(codes);
+    // Note: The contract generates QR codes internally via addClueWithGeneratedQr
+    // We would need to listen to ClueAddedWithQR events to get the QR strings
+    // For now, we'll show a message that QR codes are generated on-chain
+    alert("QR codes are generated automatically when you add clues. Check the transaction events to retrieve them.");
   };
 
   if (!isConnected) {

@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useTotalHunts, useHunt, usePlayerProgress } from "@/hooks/use-treasure-hunt";
+import { useBrowseHunts, useSelectHunt, useGetDetailedProgress } from "@/hooks/use-treasure-hunt";
 import { useAccount } from "wagmi";
 import { formatCUSD } from "@/lib/treasure-hunt-utils";
 import { useEffect, useState } from "react";
@@ -11,16 +11,8 @@ import { useEffect, useState } from "react";
 export default function LeaderboardPage() {
   const router = useRouter();
   const { address } = useAccount();
-  const { totalHunts } = useTotalHunts();
-  const [huntIds, setHuntIds] = useState<number[]>([]);
+  const { hunts } = useBrowseHunts();
   const [selectedHuntId, setSelectedHuntId] = useState<number | null>(null);
-
-  useEffect(() => {
-    if (totalHunts > 0) {
-      const ids = Array.from({ length: totalHunts }, (_, i) => i);
-      setHuntIds(ids);
-    }
-  }, [totalHunts]);
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
@@ -47,8 +39,8 @@ export default function LeaderboardPage() {
           className="w-full md:w-64 px-4 py-2 border rounded-lg"
         >
           <option value="">All Hunts (Global)</option>
-          {huntIds.map((id) => (
-            <HuntOption key={id} huntId={id} />
+          {hunts.map((hunt) => (
+            <HuntOption key={hunt.id} hunt={hunt} />
           ))}
         </select>
       </div>
@@ -76,17 +68,15 @@ export default function LeaderboardPage() {
   );
 }
 
-function HuntOption({ huntId }: { huntId: number }) {
-  const { hunt } = useHunt(huntId);
-  if (!hunt || !hunt.exists || !hunt.published) return null;
-  return <option value={huntId}>{hunt.title}</option>;
+function HuntOption({ hunt }: { hunt: { id: number; title: string } }) {
+  return <option value={hunt.id}>{hunt.title}</option>;
 }
 
 function HuntLeaderboard({ huntId }: { huntId: number }) {
-  const { hunt } = useHunt(huntId);
+  const { hunt } = useSelectHunt(huntId);
   const { address } = useAccount();
 
-  if (!hunt || !hunt.exists) {
+  if (!hunt) {
     return (
       <Card>
         <CardContent className="pt-6">
@@ -103,7 +93,7 @@ function HuntLeaderboard({ huntId }: { huntId: number }) {
       <CardHeader>
         <CardTitle>Leaderboard: {hunt.title}</CardTitle>
         <CardDescription>
-          {Number(hunt.clueCount)} clues • {formatCUSD(hunt.totalRewards)} cUSD total rewards
+          {hunt.clueCount} clues • {formatCUSD(hunt.totalReward)} cUSD total rewards
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -133,27 +123,21 @@ function HuntLeaderboard({ huntId }: { huntId: number }) {
 }
 
 function PlayerProgressDisplay({ huntId }: { huntId: number }) {
-  const { progress } = usePlayerProgress(huntId);
-  const { hunt } = useHunt(huntId);
+  const { progress } = useGetDetailedProgress(huntId);
+  const { hunt } = useSelectHunt(huntId);
 
   if (!progress || !progress.hasStarted) {
     return <p className="text-gray-500">You haven't started this hunt yet.</p>;
   }
 
-  const isCompleted = progress.currentClueIndex >= Number(hunt?.clueCount ?? 0);
+  const isCompleted = progress.hasCompleted;
 
   return (
     <div className="space-y-2">
       <div className="flex justify-between">
         <span>Clues Completed:</span>
         <span className="font-medium">
-          {Number(progress.currentClueIndex)} / {Number(hunt?.clueCount ?? 0)}
-        </span>
-      </div>
-      <div className="flex justify-between">
-        <span>Total Earned:</span>
-        <span className="font-medium text-green-600">
-          {formatCUSD(progress.totalEarned)} cUSD
+          {progress.currentClue} / {hunt?.clueCount ?? 0}
         </span>
       </div>
       {isCompleted && (

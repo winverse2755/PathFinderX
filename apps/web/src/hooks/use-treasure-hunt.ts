@@ -1,132 +1,77 @@
 "use client";
 
-import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useChainId, useSwitchChain } from "wagmi";
 import { useAccount } from "wagmi";
 import { Address } from "viem";
-import { TREASURE_HUNT_ABI, CUSD_ADDRESS, ERC20_ABI } from "@/lib/constants";
-import { hashAnswer, parseCUSD } from "@/lib/treasure-hunt-utils";
+import {
+  TREASURE_HUNT_CREATOR_ADDRESS,
+  TREASURE_HUNT_PLAYER_ADDRESS,
+  TREASURE_HUNT_CREATOR_ABI,
+  TREASURE_HUNT_PLAYER_ABI,
+  CUSD_ADDRESS,
+  ERC20_ABI,
+  CELO_MAINNET_CHAIN_ID,
+} from "@/lib/contract-abis";
+import { parseCUSD } from "@/lib/treasure-hunt-utils";
+import { celo } from "wagmi/chains";
 
-import { TREASURE_HUNT_CONTRACT } from "@/lib/constants";
-
+// Base hook for contract interactions
 export function useTreasureHuntContract() {
   const { address } = useAccount();
+  const chainId = useChainId();
+  const { switchChain } = useSwitchChain();
   const { writeContract, data: hash, isPending, error } = useWriteContract();
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
     hash,
   });
 
+  // Helper to ensure we're on Celo mainnet before writing
+  const writeContractOnCelo = (params: any) => {
+    // If not on Celo mainnet, switch first
+    if (chainId !== CELO_MAINNET_CHAIN_ID) {
+      switchChain({ chainId: CELO_MAINNET_CHAIN_ID });
+      throw new Error("Please switch to Celo Mainnet to continue. The wallet will prompt you to switch.");
+    }
+    // Write contract - chain is determined by the connected chain
+    return writeContract(params);
+  };
+
   return {
-    writeContract,
+    writeContract: writeContractOnCelo,
     hash,
     isPending,
     isConfirming,
     isConfirmed,
     error,
     address,
+    chainId,
+    isOnCeloMainnet: chainId === CELO_MAINNET_CHAIN_ID,
   };
 }
 
+// Creator hooks
 export function useIsCreator() {
   const { address } = useAccount();
   const { data: isCreator } = useReadContract({
-    address: TREASURE_HUNT_CONTRACT,
-    abi: TREASURE_HUNT_ABI,
-    functionName: "isCreator",
+    address: TREASURE_HUNT_CREATOR_ADDRESS,
+    abi: TREASURE_HUNT_CREATOR_ABI,
+    functionName: "registeredCreator",
     args: address ? [address] : undefined,
+    chainId: CELO_MAINNET_CHAIN_ID,
     query: { enabled: !!address },
   });
 
   return { isCreator: isCreator ?? false };
 }
 
-export function useTotalHunts() {
-  const { data: totalHunts } = useReadContract({
-    address: TREASURE_HUNT_CONTRACT,
-    abi: TREASURE_HUNT_ABI,
-    functionName: "totalHunts",
-  });
-
-  return { totalHunts: totalHunts ? Number(totalHunts) : 0 };
-}
-
-export function useHunt(huntId: number | null) {
-  const { data: hunt } = useReadContract({
-    address: TREASURE_HUNT_CONTRACT,
-    abi: TREASURE_HUNT_ABI,
-    functionName: "getHunt",
-    args: huntId !== null ? [BigInt(huntId)] : undefined,
-    query: { enabled: huntId !== null },
-  });
-
-  return { hunt };
-}
-
-export function useClue(huntId: number | null, clueIndex: number | null) {
-  const { data: clue } = useReadContract({
-    address: TREASURE_HUNT_CONTRACT,
-    abi: TREASURE_HUNT_ABI,
-    functionName: "getClue",
-    args:
-      huntId !== null && clueIndex !== null
-        ? [BigInt(huntId), BigInt(clueIndex)]
-        : undefined,
-    query: { enabled: huntId !== null && clueIndex !== null },
-  });
-
-  return { clue };
-}
-
-export function usePlayerProgress(huntId: number | null) {
-  const { address } = useAccount();
-  const { data: progress } = useReadContract({
-    address: TREASURE_HUNT_CONTRACT,
-    abi: TREASURE_HUNT_ABI,
-    functionName: "getPlayerProgress",
-    args: huntId !== null && address ? [BigInt(huntId), address] : undefined,
-    query: { enabled: huntId !== null && !!address },
-  });
-
-  return { progress };
-}
-
-export function useCUSDBalance() {
-  const { address } = useAccount();
-  const { data: balance } = useReadContract({
-    address: CUSD_ADDRESS,
-    abi: ERC20_ABI,
-    functionName: "balanceOf",
-    args: address ? [address] : undefined,
-    query: { enabled: !!address },
-  });
-
-  return { balance: balance ?? BigInt(0) };
-}
-
-export function useCUSDAllowance(spender: Address | undefined) {
-  const { address } = useAccount();
-  const { data: allowance } = useReadContract({
-    address: CUSD_ADDRESS,
-    abi: ERC20_ABI,
-    functionName: "allowance",
-    args: address && spender ? [address, spender] : undefined,
-    query: { enabled: !!address && !!spender },
-  });
-
-  return { allowance: allowance ?? BigInt(0) };
-}
-
-// Action hooks
 export function useRegisterCreator() {
   const { writeContract, hash, isPending, isConfirming, isConfirmed, error } =
     useTreasureHuntContract();
 
   const registerCreator = () => {
-    if (!TREASURE_HUNT_CONTRACT) {
-      throw new Error("Contract address not set");
-    }
     writeContract({
-      address: TREASURE_HUNT_CONTRACT,
-      abi: TREASURE_HUNT_ABI,
+      address: TREASURE_HUNT_CREATOR_ADDRESS,
+      abi: TREASURE_HUNT_CREATOR_ABI,
       functionName: "registerCreator",
     });
   };
@@ -145,15 +90,12 @@ export function useCreateHunt() {
   const { writeContract, hash, isPending, isConfirming, isConfirmed, error } =
     useTreasureHuntContract();
 
-  const createHunt = (title: string, description: string, startTime: bigint, endTime: bigint) => {
-    if (!TREASURE_HUNT_CONTRACT) {
-      throw new Error("Contract address not set");
-    }
+  const createHunt = (title: string, description: string) => {
     writeContract({
-      address: TREASURE_HUNT_CONTRACT,
-      abi: TREASURE_HUNT_ABI,
+      address: TREASURE_HUNT_CREATOR_ADDRESS,
+      abi: TREASURE_HUNT_CREATOR_ABI,
       functionName: "createHunt",
-      args: [title, description, startTime, endTime],
+      args: [title, description],
     });
   };
 
@@ -167,32 +109,27 @@ export function useCreateHunt() {
   };
 }
 
-export function useAddClue() {
+export function useAddClueWithGeneratedQr() {
   const { writeContract, hash, isPending, isConfirming, isConfirmed, error } =
     useTreasureHuntContract();
 
-  const addClue = (
+  const addClueWithGeneratedQr = (
     huntId: number,
     clueText: string,
-    answer: string,
     reward: string,
     location: string
   ) => {
-    if (!TREASURE_HUNT_CONTRACT) {
-      throw new Error("Contract address not set");
-    }
-    const answerHash = hashAnswer(answer);
     const rewardAmount = parseCUSD(reward);
     writeContract({
-      address: TREASURE_HUNT_CONTRACT,
-      abi: TREASURE_HUNT_ABI,
-      functionName: "addClue",
-      args: [BigInt(huntId), clueText, answerHash, rewardAmount, location],
+      address: TREASURE_HUNT_CREATOR_ADDRESS,
+      abi: TREASURE_HUNT_CREATOR_ABI,
+      functionName: "addClueWithGeneratedQr",
+      args: [BigInt(huntId), clueText, rewardAmount, location],
     });
   };
 
   return {
-    addClue,
+    addClueWithGeneratedQr,
     hash,
     isPending,
     isConfirming,
@@ -206,13 +143,10 @@ export function useFundHunt() {
     useTreasureHuntContract();
 
   const fundHunt = (huntId: number, amount: string) => {
-    if (!TREASURE_HUNT_CONTRACT) {
-      throw new Error("Contract address not set");
-    }
     const amountBigInt = parseCUSD(amount);
     writeContract({
-      address: TREASURE_HUNT_CONTRACT,
-      abi: TREASURE_HUNT_ABI,
+      address: TREASURE_HUNT_CREATOR_ADDRESS,
+      abi: TREASURE_HUNT_CREATOR_ABI,
       functionName: "fundHunt",
       args: [BigInt(huntId), amountBigInt],
     });
@@ -228,13 +162,249 @@ export function useFundHunt() {
   };
 }
 
+export function usePublishHunt() {
+  const { writeContract, hash, isPending, isConfirming, isConfirmed, error } =
+    useTreasureHuntContract();
+
+  const publishHunt = (huntId: number) => {
+    writeContract({
+      address: TREASURE_HUNT_CREATOR_ADDRESS,
+      abi: TREASURE_HUNT_CREATOR_ABI,
+      functionName: "publishHunt",
+      args: [BigInt(huntId)],
+    });
+  };
+
+  return {
+    publishHunt,
+    hash,
+    isPending,
+    isConfirming,
+    isConfirmed,
+    error,
+  };
+}
+
+// Player hooks
+export function useBrowseHunts() {
+  const { data: huntsData } = useReadContract({
+    address: TREASURE_HUNT_PLAYER_ADDRESS,
+    abi: TREASURE_HUNT_PLAYER_ABI,
+    functionName: "browseHunts",
+    chainId: CELO_MAINNET_CHAIN_ID,
+  });
+
+  if (!huntsData) {
+    return { hunts: [] };
+  }
+
+  const [huntIds, titles, descriptions, rewards, clueCounts, participants] = huntsData as [
+    bigint[],
+    string[],
+    string[],
+    bigint[],
+    bigint[],
+    bigint[],
+  ];
+
+  const hunts = huntIds.map((id, index) => ({
+    id: Number(id),
+    title: titles[index],
+    description: descriptions[index],
+    reward: rewards[index],
+    clueCount: Number(clueCounts[index]),
+    participants: Number(participants[index]),
+  }));
+
+  return { hunts };
+}
+
+export function useSelectHunt(huntId: number | null) {
+  const { data: huntData } = useReadContract({
+    address: TREASURE_HUNT_PLAYER_ADDRESS,
+    abi: TREASURE_HUNT_PLAYER_ABI,
+    functionName: "selectHunt",
+    args: huntId !== null ? [BigInt(huntId)] : undefined,
+    chainId: CELO_MAINNET_CHAIN_ID,
+    query: { enabled: huntId !== null },
+  });
+
+  if (!huntData) {
+    return { hunt: null };
+  }
+
+  // Type assertion to handle the readonly tuple from wagmi
+  // The contract returns: title, description, totalReward, clueCount, playerProgress, isCompleted, startTime
+  const huntTuple = huntData as readonly [string, string, bigint, bigint, bigint, boolean, bigint];
+  const [title, description, totalReward, clueCount, playerProgress, isCompleted] = huntTuple;
+
+  return {
+    hunt: {
+      title,
+      description,
+      totalReward,
+      clueCount: Number(clueCount),
+      playerProgress: Number(playerProgress),
+      isCompleted,
+    },
+  };
+}
+
+export function useStartHunt() {
+  const { writeContract, hash, isPending, isConfirming, isConfirmed, error } =
+    useTreasureHuntContract();
+
+  const startHunt = (huntId: number) => {
+    writeContract({
+      address: TREASURE_HUNT_PLAYER_ADDRESS,
+      abi: TREASURE_HUNT_PLAYER_ABI,
+      functionName: "startHunt",
+      args: [BigInt(huntId)],
+    });
+  };
+
+  return {
+    startHunt,
+    hash,
+    isPending,
+    isConfirming,
+    isConfirmed,
+    error,
+  };
+}
+
+export function useViewCurrentClue(huntId: number | null) {
+  const { data: clueData } = useReadContract({
+    address: TREASURE_HUNT_PLAYER_ADDRESS,
+    abi: TREASURE_HUNT_PLAYER_ABI,
+    functionName: "viewCurrentClue",
+    args: huntId !== null ? [BigInt(huntId)] : undefined,
+    chainId: CELO_MAINNET_CHAIN_ID,
+    query: { enabled: huntId !== null },
+  });
+
+  if (!clueData) {
+    return { clue: null };
+  }
+
+  const [clueText, reward, clueIndex, location] = clueData as [
+    string,
+    bigint,
+    bigint,
+    string,
+  ];
+
+  return {
+    clue: {
+      clueText,
+      reward,
+      clueIndex: Number(clueIndex),
+      location,
+    },
+  };
+}
+
+export function useSubmitAnswer() {
+  const { writeContract, hash, isPending, isConfirming, isConfirmed, error } =
+    useTreasureHuntContract();
+
+  const submitAnswer = (huntId: number, answer: string) => {
+    // Note: The contract hashes the answer internally, so we pass the plain string
+    writeContract({
+      address: TREASURE_HUNT_PLAYER_ADDRESS,
+      abi: TREASURE_HUNT_PLAYER_ABI,
+      functionName: "submitAnswer",
+      args: [BigInt(huntId), answer],
+    });
+  };
+
+  return {
+    submitAnswer,
+    hash,
+    isPending,
+    isConfirming,
+    isConfirmed,
+    error,
+  };
+}
+
+export function useGetDetailedProgress(huntId: number | null) {
+  const { address } = useAccount();
+  const { data: progressData } = useReadContract({
+    address: TREASURE_HUNT_PLAYER_ADDRESS,
+    abi: TREASURE_HUNT_PLAYER_ABI,
+    functionName: "getDetailedProgress",
+    args: huntId !== null && address ? [BigInt(huntId), address] : undefined,
+    chainId: CELO_MAINNET_CHAIN_ID,
+    query: { enabled: huntId !== null && !!address },
+  });
+
+  if (!progressData) {
+    return { progress: null };
+  }
+
+  const [currentClue, totalClues, hasStarted, hasCompleted, startTime] = progressData as [
+    bigint,
+    bigint,
+    boolean,
+    boolean,
+    bigint,
+  ];
+
+  return {
+    progress: {
+      currentClue: Number(currentClue),
+      totalClues: Number(totalClues),
+      hasStarted,
+      hasCompleted,
+      startTime: Number(startTime),
+    },
+  };
+}
+
+// cUSD hooks
+export function useCUSDBalance() {
+  const { address } = useAccount();
+  const { data: balance } = useReadContract({
+    address: CUSD_ADDRESS,
+    abi: ERC20_ABI,
+    functionName: "balanceOf",
+    args: address ? [address] : undefined,
+    chainId: CELO_MAINNET_CHAIN_ID,
+    query: { enabled: !!address },
+  });
+
+  return { balance: balance ?? BigInt(0) };
+}
+
+export function useCUSDAllowance(spender: Address | undefined) {
+  const { address } = useAccount();
+  const { data: allowance } = useReadContract({
+    address: CUSD_ADDRESS,
+    abi: ERC20_ABI,
+    functionName: "allowance",
+    args: address && spender ? [address, spender] : undefined,
+    chainId: CELO_MAINNET_CHAIN_ID,
+    query: { enabled: !!address && !!spender },
+  });
+
+  return { allowance: allowance ?? BigInt(0) };
+}
+
 export function useApproveCUSD() {
+  const chainId = useChainId();
+  const { switchChain } = useSwitchChain();
   const { writeContract, data: hash, isPending, error } = useWriteContract();
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
     hash,
   });
 
   const approveCUSD = (spender: Address, amount: bigint) => {
+    // If not on Celo mainnet, switch first
+    if (chainId !== CELO_MAINNET_CHAIN_ID) {
+      switchChain({ chainId: CELO_MAINNET_CHAIN_ID });
+      throw new Error("Please switch to Celo Mainnet to continue. The wallet will prompt you to switch.");
+    }
     writeContract({
       address: CUSD_ADDRESS,
       abi: ERC20_ABI,
@@ -252,57 +422,3 @@ export function useApproveCUSD() {
     error,
   };
 }
-
-export function useSubmitAnswer() {
-  const { writeContract, hash, isPending, isConfirming, isConfirmed, error } =
-    useTreasureHuntContract();
-
-  const submitAnswer = (huntId: number, clueIndex: number, answer: string) => {
-    if (!TREASURE_HUNT_CONTRACT) {
-      throw new Error("Contract address not set");
-    }
-    const answerHash = hashAnswer(answer);
-    writeContract({
-      address: TREASURE_HUNT_CONTRACT,
-      abi: TREASURE_HUNT_ABI,
-      functionName: "submitAnswer",
-      args: [BigInt(huntId), BigInt(clueIndex), answerHash],
-    });
-  };
-
-  return {
-    submitAnswer,
-    hash,
-    isPending,
-    isConfirming,
-    isConfirmed,
-    error,
-  };
-}
-
-export function usePublishHunt() {
-  const { writeContract, hash, isPending, isConfirming, isConfirmed, error } =
-    useTreasureHuntContract();
-
-  const publishHunt = (huntId: number) => {
-    if (!TREASURE_HUNT_CONTRACT) {
-      throw new Error("Contract address not set");
-    }
-    writeContract({
-      address: TREASURE_HUNT_CONTRACT,
-      abi: TREASURE_HUNT_ABI,
-      functionName: "publishHunt",
-      args: [BigInt(huntId)],
-    });
-  };
-
-  return {
-    publishHunt,
-    hash,
-    isPending,
-    isConfirming,
-    isConfirmed,
-    error,
-  };
-}
-

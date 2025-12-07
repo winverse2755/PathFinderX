@@ -1,16 +1,18 @@
-import { Address } from "viem";
+// Re-export from contract-abis for backward compatibility
+export {
+  CUSD_ADDRESS,
+  CELO_MAINNET_CHAIN_ID,
+  TREASURE_HUNT_CREATOR_ADDRESS,
+  TREASURE_HUNT_PLAYER_ADDRESS,
+  ERC20_ABI,
+} from "./contract-abis";
 
-// Celo Mainnet cUSD token address
-export const CUSD_ADDRESS: Address = "0x765DE816845861e75A25fCA122bb6898B8B1282a";
+// Legacy export for backward compatibility (deprecated - use TREASURE_HUNT_PLAYER_ADDRESS instead)
+import { TREASURE_HUNT_PLAYER_ADDRESS } from "./contract-abis";
+export const TREASURE_HUNT_CONTRACT = TREASURE_HUNT_PLAYER_ADDRESS;
 
-// Celo Mainnet chain ID
-export const CELO_MAINNET_CHAIN_ID = 42220;
-
-// Treasure Hunt contract address (set after deployment)
-// For now, use environment variable or set manually
-export const TREASURE_HUNT_CONTRACT = (process.env.NEXT_PUBLIC_TREASURE_HUNT_CONTRACT || "0x0000000000000000000000000000000000000000") as Address;
-
-// Treasure Hunt contract ABI (minimal for now, will be updated after deployment)
+// Legacy ABI export (deprecated - use TREASURE_HUNT_PLAYER_ABI from contract-abis instead)
+// Keeping for backward compatibility but should be removed in future
 export const TREASURE_HUNT_ABI = [
   {
     inputs: [{ internalType: "address", name: "_cUSD", type: "address" }],
@@ -164,37 +166,6 @@ export const TREASURE_HUNT_ABI = [
     inputs: [{ internalType: "address", name: "", type: "address" }],
     name: "isCreator",
     outputs: [{ internalType: "bool", name: "", type: "bool" }],
-    stateMutability: "view",
-    type: "function",
-  },
-] as const;
-
-// ERC20 ABI for cUSD transfers
-export const ERC20_ABI = [
-  {
-    inputs: [
-      { internalType: "address", name: "spender", type: "address" },
-      { internalType: "uint256", name: "amount", type: "uint256" },
-    ],
-    name: "approve",
-    outputs: [{ internalType: "bool", name: "", type: "bool" }],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      { internalType: "address", name: "owner", type: "address" },
-      { internalType: "address", name: "spender", type: "address" },
-    ],
-    name: "allowance",
-    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [{ internalType: "address", name: "account", type: "address" }],
-    name: "balanceOf",
-    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
     stateMutability: "view",
     type: "function",
   },
