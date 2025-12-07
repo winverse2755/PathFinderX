@@ -16,6 +16,7 @@ const navLinks = [
   { name: "Hunts", href: "/" },
   { name: "Create", href: "/create" },
   { name: "Leaderboard", href: "/leaderboard" },
+  { name: "Search", href: "/search", isSearch: true },
 ]
 
 export function Navbar() {
@@ -44,10 +45,14 @@ export function Navbar() {
                   <Link
                     key={link.href}
                     href={link.href}
-                    className={`block px-4 py-3 border-2 border-celo-purple text-body-bold text-base transition-premium hover-lift animate-slide-in ${
-                      pathname === link.href
-                        ? "bg-celo-purple text-celo-yellow"
-                        : "bg-transparent text-celo-purple hover:bg-celo-purple hover:text-celo-yellow"
+                    className={`block px-4 py-3 border-2 text-body-bold text-base transition-premium hover-lift animate-slide-in ${
+                      link.isSearch
+                        ? pathname === link.href
+                          ? "bg-celo-pink-accent border-celo-purple text-celo-purple"
+                          : "bg-celo-pink-accent/20 border-celo-pink-accent text-celo-purple hover:bg-celo-pink-accent hover:border-celo-purple"
+                        : pathname === link.href
+                        ? "bg-celo-purple text-celo-yellow border-celo-purple"
+                        : "bg-transparent text-celo-purple border-celo-purple hover:bg-celo-purple hover:text-celo-yellow"
                     }`}
                     style={{ animationDelay: `${index * 0.1}s` }}
                   >
@@ -55,7 +60,12 @@ export function Navbar() {
                   </Link>
                 ))}
                 <div className="mt-6 pt-6 border-t-2 border-celo-purple">
-                  <WalletConnectButton />
+                  <div className="md:hidden">
+                    <WalletConnectButton mobileView />
+                  </div>
+                  <div className="hidden md:block">
+                    <WalletConnectButton />
+                  </div>
                 </div>
               </nav>
             </SheetContent>
@@ -75,10 +85,14 @@ export function Navbar() {
             <Link
               key={link.href}
               href={link.href}
-              className={`px-4 py-2 border-2 border-celo-purple text-body-bold text-sm transition-premium hover-lift ${
-                pathname === link.href
-                  ? "bg-celo-purple text-celo-yellow shadow-md"
-                  : "bg-transparent text-celo-purple hover:bg-celo-purple hover:text-celo-yellow"
+              className={`px-4 py-2 border-2 text-body-bold text-sm transition-premium hover-lift ${
+                link.isSearch
+                  ? pathname === link.href
+                    ? "bg-celo-pink-accent border-celo-purple text-celo-purple shadow-md"
+                    : "bg-celo-pink-accent/20 border-celo-pink-accent text-celo-purple hover:bg-celo-pink-accent hover:border-celo-purple"
+                  : pathname === link.href
+                  ? "bg-celo-purple text-celo-yellow border-celo-purple shadow-md"
+                  : "bg-transparent text-celo-purple border-celo-purple hover:bg-celo-purple hover:text-celo-yellow"
               }`}
             >
               {link.name}

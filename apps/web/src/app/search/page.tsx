@@ -1,76 +1,62 @@
 "use client";
 
-import { useMiniApp } from "@/contexts/miniapp-context";
-import { useAccount } from "wagmi";
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { useState } from "react";
 import { useBrowseHunts } from "@/hooks/use-treasure-hunt";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { formatCUSD } from "@/lib/treasure-hunt-utils";
+import Link from "next/link";
+import { Search } from "lucide-react";
 
-export default function Home() {
-  const { context, isMiniAppReady } = useMiniApp();
-  const { address, isConnected } = useAccount();
+export default function SearchPage() {
   const { hunts } = useBrowseHunts();
-
-  if (!isMiniAppReady) {
+  const [searchQuery, setSearchQuery] = useState("");
+  
+  // Sort hunts by newest first
+  const sortedHunts = [...hunts].sort((a, b) => b.id - a.id);
+  
+  const filteredHunts = sortedHunts.filter((hunt) => {
+    const query = searchQuery.toLowerCase();
     return (
-      <main className="flex-1">
-        <section className="flex items-center justify-center min-h-screen bg-celo-tan-light">
-          <div className="w-full max-w-md mx-auto p-8 text-center border-4 border-celo-purple bg-white">
-            <div className="animate-spin h-12 w-12 border-4 border-celo-purple border-t-celo-yellow mx-auto mb-4"></div>
-            <p className="text-body-bold text-celo-purple">Loading...</p>
-          </div>
-        </section>
-      </main>
+      hunt.title.toLowerCase().includes(query) ||
+      hunt.description.toLowerCase().includes(query)
     );
-  }
+  });
 
   return (
     <main className="flex-1 bg-celo-tan-light min-h-screen">
       <div className="container mx-auto px-6 py-12 max-w-7xl">
-        {/* Hero Section */}
-        <div className="mb-16 border-4 border-celo-purple bg-celo-yellow p-8 md:p-12 animate-fade-in shadow-lg hover-lift">
-          <h1 className="text-display text-5xl md:text-7xl font-display font-light italic text-celo-purple mb-4 leading-tight">
-            Treasure <span className="not-italic">Hunt</span>
+        {/* Search Header */}
+        <div className="mb-12 border-4 border-celo-purple bg-celo-yellow p-8 md:p-12 animate-fade-in shadow-lg hover-lift">
+          <h1 className="text-display text-5xl md:text-7xl font-display font-light italic text-celo-purple mb-6 leading-tight">
+            Search <span className="not-italic">Hunts</span>
           </h1>
-          <p className="text-body-bold text-xl md:text-2xl text-celo-purple max-w-2xl">
-            Discover clues, solve puzzles, and earn cUSD rewards on Celo.
-          </p>
+          <div className="relative max-w-2xl">
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-6 w-6 text-celo-brown" />
+            <Input
+              type="text"
+              placeholder="Search by title or description..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-12 h-14 text-lg border-4 border-celo-purple bg-white text-celo-purple"
+            />
+          </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="mb-12 flex flex-wrap gap-4 animate-slide-in">
-          <Link href="/create">
-            <Button size="lg" className="border-4 transition-premium hover-lift">
-              Create Hunt
-            </Button>
-          </Link>
-          <Link href="/leaderboard">
-            <Button variant="outline" size="lg" className="border-4 transition-premium hover-lift">
-              Leaderboard
-            </Button>
-          </Link>
-          <Link href="/search">
-            <Button 
-              size="lg" 
-              className="border-4 border-celo-pink-accent bg-celo-pink-accent/20 text-celo-purple hover:bg-celo-pink-accent hover:border-celo-purple transition-premium hover-lift"
-            >
-              Search
-            </Button>
-          </Link>
-        </div>
-
-        {/* Hunts Grid */}
+        {/* Results */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {hunts.length === 0 ? (
+          {filteredHunts.length === 0 ? (
             <div className="col-span-full border-4 border-celo-purple bg-white p-12 text-center animate-fade-in">
-              <p className="text-body-bold text-2xl text-celo-purple mb-2">No hunts available yet.</p>
-              <p className="text-body-bold text-lg text-celo-brown">Be the first to create one!</p>
+              <p className="text-body-bold text-2xl text-celo-purple mb-2">
+                {searchQuery ? "No hunts found." : "No hunts available yet."}
+              </p>
+              <p className="text-body-bold text-lg text-celo-brown">
+                {searchQuery ? "Try a different search term." : "Be the first to create one!"}
+              </p>
             </div>
           ) : (
-            [...hunts].sort((a, b) => b.id - a.id).map((hunt, index) => (
+            filteredHunts.map((hunt, index) => (
               <div key={hunt.id} className="animate-scale-in" style={{ animationDelay: `${index * 0.1}s` }}>
                 <HuntCard hunt={hunt} />
               </div>
@@ -84,7 +70,6 @@ export default function Home() {
 
 function HuntCard({ hunt }: { hunt: { id: number; title: string; description: string; reward: bigint; clueCount: number; participants: number } }) {
   const totalReward = formatCUSD(hunt.reward);
-  const isActive = true; // All hunts from browseHunts are active
 
   return (
     <Card className="hover:border-celo-yellow transition-premium hover-lift group">
@@ -116,3 +101,4 @@ function HuntCard({ hunt }: { hunt: { id: number; title: string; description: st
     </Card>
   );
 }
+

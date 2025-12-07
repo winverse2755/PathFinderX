@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAccount } from "wagmi";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,9 +37,9 @@ export default function CreateHuntPage() {
   const { createHunt, isPending: isCreating, isConfirmed: huntCreated, hash: createHash } =
     useCreateHunt();
   const { addClueWithGeneratedQr, isPending: isAddingClue, isConfirmed: clueAdded } = useAddClueWithGeneratedQr();
-  const { fundHunt, isPending: isFunding, isConfirmed: huntFunded } = useFundHunt();
-  const { publishHunt, isPending: isPublishing, isConfirmed: huntPublished } = usePublishHunt();
-  const { approveCUSD, isPending: isApproving, isConfirmed: cUSDApproved } = useApproveCUSD();
+  const { fundHunt, isPending: isFunding, isConfirmed: huntFunded, error: fundErrorHook } = useFundHunt();
+  const { publishHunt, isPending: isPublishing, isConfirmed: huntPublished, error: publishError } = usePublishHunt();
+  const { approveCUSD, isPending: isApproving, isConfirmed: cUSDApproved, error: approveErrorHook } = useApproveCUSD();
   const { balance } = useCUSDBalance();
 
   const [step, setStep] = useState<"register" | "create" | "clues" | "fund" | "publish" | "qr">(
@@ -58,11 +58,19 @@ export default function CreateHuntPage() {
   const [qrCodes, setQrCodes] = useState<string[]>([]);
 
   const { hunt } = useSelectHunt(huntId);
-  const totalRewards = clues.reduce(
+  // Use the contract's totalReward instead of calculating locally
+  const contractTotalReward = hunt?.totalReward ?? BigInt(0);
+  const localTotalRewards = clues.reduce(
     (sum, clue) => sum + parseCUSD(clue.reward),
     BigInt(0)
   );
+  // Use contract's totalReward if available, otherwise fall back to local calculation
+  const totalRewards = contractTotalReward > BigInt(0) ? contractTotalReward : localTotalRewards;
   const { allowance } = useCUSDAllowance(TREASURE_HUNT_CREATOR_ADDRESS);
+  
+  // Error state for displaying transaction errors
+  const [fundError, setFundError] = useState<string | null>(null);
+  const [approveError, setApproveError] = useState<string | null>(null);
 
   // Auto-advance steps
   if (!isCreator && step === "register" && isRegistered) {
@@ -139,23 +147,65 @@ export default function CreateHuntPage() {
 
   const handleFundHunt = async () => {
     if (huntId === null) {
-      alert("Please create the hunt first");
+      setFundError("Please create the hunt first");
       return;
     }
+
+    // Clear previous errors
+    setFundError(null);
+    setApproveError(null);
 
     // Check if approval is needed
     if (allowance < totalRewards) {
-      // First approve
-      approveCUSD(
-        TREASURE_HUNT_CREATOR_ADDRESS,
-        totalRewards * BigInt(2) // Approve 2x to be safe
-      );
+      try {
+        // First approve - approve more than needed to avoid multiple approvals
+        approveCUSD(
+          TREASURE_HUNT_CREATOR_ADDRESS,
+          totalRewards * BigInt(2) // Approve 2x to be safe
+        );
+      } catch (err: any) {
+        setApproveError(err.message || "Failed to approve cUSD");
+      }
       return;
     }
 
-    // Then fund
-    fundHunt(huntId, formatCUSD(totalRewards));
+    // Then fund - use the contract's totalReward to ensure it matches
+    // The contract requires: _amount >= hunt.totalReward
+    // So we must fund with at least the contract's totalReward
+    let fundingAmount = totalRewards;
+    
+    if (contractTotalReward > BigInt(0)) {
+      // Use contract's totalReward, but ensure we're funding with at least that amount
+      fundingAmount = contractTotalReward > totalRewards ? contractTotalReward : totalRewards;
+    }
+    
+    // Ensure we have enough balance
+    if (balance < fundingAmount) {
+      setFundError(`Insufficient balance. You need ${formatCUSD(fundingAmount)} cUSD but only have ${formatCUSD(balance)} cUSD.`);
+      return;
+    }
+    
+    try {
+      fundHunt(huntId, formatCUSD(fundingAmount));
+    } catch (err: any) {
+      setFundError(err.message || "Failed to fund hunt");
+    }
   };
+
+  // Display errors from hooks
+  useEffect(() => {
+    if (fundErrorHook) {
+      const errorMessage = fundErrorHook.message || fundErrorHook.toString() || "Transaction failed";
+      setFundError(errorMessage);
+    }
+  }, [fundErrorHook]);
+
+  useEffect(() => {
+    if (approveErrorHook) {
+      const errorMessage = approveErrorHook.message || approveErrorHook.toString() || "Approval failed";
+      setApproveError(errorMessage);
+    }
+  }, [approveErrorHook]);
 
   const handlePublish = () => {
     if (huntId === null) {
@@ -384,32 +434,54 @@ export default function CreateHuntPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="p-4 bg-gray-50 rounded-lg">
+            <div className="p-4 border-4 border-celo-purple bg-celo-tan-light">
               <div className="flex justify-between mb-2">
-                <span>Total Rewards Needed:</span>
-                <span className="font-medium">{formatCUSD(totalRewards)} cUSD</span>
+                <span className="text-body-bold text-celo-purple">Total Rewards Needed:</span>
+                <span className="text-body-bold text-lg text-celo-purple font-bold">{formatCUSD(totalRewards)} cUSD</span>
               </div>
+              {contractTotalReward > BigInt(0) && contractTotalReward !== localTotalRewards && (
+                <p className="text-body-bold text-sm text-celo-brown mt-2">
+                  Note: Contract shows {formatCUSD(contractTotalReward)} cUSD (using contract value)
+                </p>
+              )}
               {balance < totalRewards && (
-                <p className="text-red-600 text-sm mt-2">
+                <p className="text-body-bold text-sm text-celo-orange mt-2">
                   Insufficient balance. You need {formatCUSD(totalRewards - balance)} more cUSD.
                 </p>
               )}
             </div>
 
             {allowance < totalRewards ? (
-              <Button
-                onClick={handleFundHunt}
-                disabled={isApproving || balance < totalRewards}
-              >
-                {isApproving ? "Approving..." : "Approve cUSD"}
-              </Button>
+              <>
+                <Button
+                  onClick={handleFundHunt}
+                  disabled={isApproving || balance < totalRewards}
+                >
+                  {isApproving ? "Approving..." : "Approve cUSD"}
+                </Button>
+                {approveError && (
+                  <div className="mt-4 p-4 border-4 border-celo-orange bg-celo-orange/20">
+                    <p className="text-body-bold text-celo-purple">Error: {approveError}</p>
+                  </div>
+                )}
+              </>
             ) : (
-              <Button
-                onClick={handleFundHunt}
-                disabled={isFunding || balance < totalRewards}
-              >
-                {isFunding ? "Funding..." : "Fund Hunt"}
-              </Button>
+              <>
+                <Button
+                  onClick={handleFundHunt}
+                  disabled={isFunding || balance < totalRewards}
+                >
+                  {isFunding ? "Funding..." : "Fund Hunt"}
+                </Button>
+                {fundError && (
+                  <div className="mt-4 p-4 border-4 border-celo-orange bg-celo-orange/20">
+                    <p className="text-body-bold text-celo-purple">Error: {fundError}</p>
+                    <p className="text-sm text-celo-brown mt-2">
+                      Make sure you have approved enough cUSD and that the funding amount matches the contract's total reward.
+                    </p>
+                  </div>
+                )}
+              </>
             )}
 
             {huntFunded && (

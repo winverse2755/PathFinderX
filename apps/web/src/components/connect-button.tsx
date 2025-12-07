@@ -16,7 +16,7 @@ import { Copy, Check, ExternalLink, Wallet, AlertCircle } from 'lucide-react'
 import { CELO_MAINNET_CHAIN_ID } from '@/lib/contract-abis'
 import { celo } from 'wagmi/chains'
 
-export function WalletConnectButton() {
+export function WalletConnectButton({ mobileView }: { mobileView?: boolean }) {
   const [mounted, setMounted] = useState(false)
   const [copied, setCopied] = useState(false)
   const [showDialog, setShowDialog] = useState(false)
@@ -133,6 +133,58 @@ export function WalletConnectButton() {
     if (switchChain) {
       switchChain({ chainId: CELO_MAINNET_CHAIN_ID })
     }
+  }
+
+  if (mobileView) {
+    return (
+      <div className="flex flex-col gap-3">
+        {!isOnCeloMainnet && isConnected && (
+          <Button
+            onClick={handleSwitchToCelo}
+            variant="destructive"
+            size="sm"
+            className="w-full border-2 transition-premium hover-lift"
+          >
+            <AlertCircle className="h-4 w-4 mr-2" />
+            Switch to Celo
+          </Button>
+        )}
+        
+        <div className="flex items-center gap-1 border-2 border-celo-purple bg-celo-tan-light px-3 py-2 transition-premium hover:border-celo-yellow">
+          <Wallet className="h-4 w-4 text-celo-purple mr-2" />
+          <span className="text-body-bold text-sm text-celo-purple flex-1">
+            {address ? `${address.slice(0, 6)}...${address.slice(-4)}` : 'Connected'}
+          </span>
+          <button
+            onClick={handleCopy}
+            className="p-1 hover:bg-celo-purple hover:text-celo-yellow transition-all rounded"
+            title="Copy address"
+          >
+            {copied ? (
+              <Check className="h-3 w-3 text-celo-green" />
+            ) : (
+              <Copy className="h-3 w-3 text-celo-purple" />
+            )}
+          </button>
+          <button
+            onClick={handleViewOnExplorer}
+            className="p-1 hover:bg-celo-purple hover:text-celo-yellow transition-all rounded"
+            title="View on Celoscan"
+          >
+            <ExternalLink className="h-3 w-3 text-celo-purple" />
+          </button>
+        </div>
+
+        <Button
+          onClick={() => disconnect()}
+          variant="outline"
+          size="sm"
+          className="w-full border-2 transition-premium hover-lift"
+        >
+          Disconnect
+        </Button>
+      </div>
+    )
   }
 
   return (

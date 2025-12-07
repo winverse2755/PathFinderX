@@ -29,6 +29,7 @@ export function useTreasureHuntContract() {
   const writeContractOnCelo = (params: any) => {
     // If not on Celo mainnet, switch first
     if (chainId !== CELO_MAINNET_CHAIN_ID) {
+      // Trigger chain switch - this will prompt the user
       switchChain({ chainId: CELO_MAINNET_CHAIN_ID });
       throw new Error("Please switch to Celo Mainnet to continue. The wallet will prompt you to switch.");
     }
@@ -273,14 +274,29 @@ export function useStartHunt() {
   };
 }
 
-export function useViewCurrentClue(huntId: number | null) {
+// Check if user is the creator of a hunt
+export function useIsHuntCreator(huntId: number | null) {
+  const { address } = useAccount();
+  const { data: huntOwner } = useReadContract({
+    address: TREASURE_HUNT_CREATOR_ADDRESS,
+    abi: TREASURE_HUNT_CREATOR_ABI,
+    functionName: "huntOwner",
+    args: huntId !== null ? [BigInt(huntId)] : undefined,
+    chainId: CELO_MAINNET_CHAIN_ID,
+    query: { enabled: huntId !== null && !!address },
+  });
+
+  return { isCreator: huntOwner && address ? huntOwner.toLowerCase() === address.toLowerCase() : false };
+}
+
+export function useViewCurrentClue(huntId: number | null, enabled: boolean = true) {
   const { data: clueData } = useReadContract({
     address: TREASURE_HUNT_PLAYER_ADDRESS,
     abi: TREASURE_HUNT_PLAYER_ABI,
     functionName: "viewCurrentClue",
     args: huntId !== null ? [BigInt(huntId)] : undefined,
     chainId: CELO_MAINNET_CHAIN_ID,
-    query: { enabled: huntId !== null },
+    query: { enabled: huntId !== null && enabled },
   });
 
   if (!clueData) {
@@ -405,6 +421,7 @@ export function useApproveCUSD() {
       switchChain({ chainId: CELO_MAINNET_CHAIN_ID });
       throw new Error("Please switch to Celo Mainnet to continue. The wallet will prompt you to switch.");
     }
+    // Write contract - chain is determined by the connected chain
     writeContract({
       address: CUSD_ADDRESS,
       abi: ERC20_ABI,

@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { QRScanner } from "@/components/qr-scanner";
-import { useSelectHunt, useViewCurrentClue, useGetDetailedProgress, useSubmitAnswer, useStartHunt } from "@/hooks/use-treasure-hunt";
+import { useSelectHunt, useViewCurrentClue, useGetDetailedProgress, useSubmitAnswer, useStartHunt, useIsHuntCreator } from "@/hooks/use-treasure-hunt";
 import { formatCUSD } from "@/lib/treasure-hunt-utils";
 import { parseQRCodeURL } from "@/lib/constants";
 
@@ -18,7 +18,9 @@ export default function HuntPage() {
   const { address, isConnected } = useAccount();
   const { hunt } = useSelectHunt(huntId);
   const { progress } = useGetDetailedProgress(huntId);
-  const { clue } = useViewCurrentClue(huntId);
+  const { isCreator } = useIsHuntCreator(huntId);
+  const hasStarted = progress?.hasStarted ?? false;
+  const { clue } = useViewCurrentClue(huntId, hasStarted);
   const [showQRScanner, setShowQRScanner] = useState(false);
   const [manualAnswer, setManualAnswer] = useState("");
   const [showManualInput, setShowManualInput] = useState(false);
@@ -107,13 +109,26 @@ export default function HuntPage() {
         setShowManualInput(false);
       }, 3000);
     }
+  }, [isConfirmed]);
+
+  useEffect(() => {
     if (error) {
+      const errorMessage = error.message || error.toString() || "Transaction failed";
       setSubmissionStatus({
         type: "error",
-        message: error.message || "Transaction failed",
+        message: errorMessage,
       });
     }
-  }, [isConfirmed, error]);
+  }, [error]);
+
+  useEffect(() => {
+    if (isStartConfirmed) {
+      setSubmissionStatus({
+        type: "success",
+        message: "Hunt started successfully!",
+      });
+    }
+  }, [isStartConfirmed]);
 
   if (!hunt) {
     return (
@@ -131,7 +146,6 @@ export default function HuntPage() {
   }
 
   const isCompleted = progress?.hasCompleted ?? false;
-  const hasStarted = progress?.hasStarted ?? false;
   const currentClueIndex = progress?.currentClue ?? 0;
 
   return (
@@ -178,14 +192,22 @@ export default function HuntPage() {
             )}
             {!hasStarted && (
               <div className="col-span-2">
-                <Button
-                  onClick={handleStartHunt}
-                  disabled={isStartPending || isStartConfirming}
-                  className="w-full border-4 transition-premium hover-lift"
-                  size="lg"
-                >
-                  {isStartPending || isStartConfirming ? "Starting..." : "Start Hunt"}
-                </Button>
+                {isCreator ? (
+                  <div className="w-full border-4 border-celo-orange bg-celo-orange/20 p-4 text-center">
+                    <p className="text-body-bold text-celo-purple">
+                      You cannot participate in your own hunt
+                    </p>
+                  </div>
+                ) : (
+                  <Button
+                    onClick={handleStartHunt}
+                    disabled={isStartPending || isStartConfirming}
+                    className="w-full border-4 transition-premium hover-lift"
+                    size="lg"
+                  >
+                    {isStartPending || isStartConfirming ? "Starting..." : "Start Hunt"}
+                  </Button>
+                )}
               </div>
             )}
           </div>
