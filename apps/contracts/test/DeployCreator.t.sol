@@ -9,7 +9,9 @@ import {MockERC20} from "./mocks/MockERC20.sol";
 /**
  * @title DeployCreatorTest
  * @notice Tests to verify the deployment script `script/DeployCreator.s.sol` works correctly
- * and deploys both contracts with proper initialization.
+ * and deploys the Creator contract with proper initialization.
+ * @dev Note: The actual deployment script only deploys Creator and requires PLAYER_ADDRESS.
+ * These tests deploy both contracts to verify the integration works correctly.
  */
 contract DeployCreatorTest is Test {
     function testDeployWithExistingToken() public {

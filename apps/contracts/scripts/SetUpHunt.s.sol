@@ -23,9 +23,16 @@ import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.so
  *   - HUNT_TITLE: Title of the hunt (defaults to "Demo Hunt")
  *   - HUNT_DESCRIPTION: Description of hunt (defaults to "A demo treasure hunt")
  *
+ * Environment variables optional (reward amounts):
+ *   - CLUE1_REWARD: Reward for first clue in wei (defaults to 0.04 ether)
+ *   - CLUE2_REWARD: Reward for second clue in wei (defaults to 0.03 ether)
+ *   - CLUE3_REWARD: Reward for third clue in wei (defaults to 0.03 ether)
+ *
  * Example:
  *   PLAYER_ADDRESS=0x... CREATOR_ADDRESS=0x... CUSD_ADDRESS=0x... \
- *   HUNT_CREATOR=0x... HUNT_TITLE="City Tour" forge script script/SetupHunt.s.sol --broadcast
+ *   HUNT_CREATOR=0x... HUNT_TITLE="City Tour" \
+ *   CLUE1_REWARD=50000000000000000 CLUE2_REWARD=30000000000000000 \
+ *   forge script script/SetupHunt.s.sol --broadcast
  */
 contract SetupHunt is Script {
     function run() external {
@@ -41,6 +48,11 @@ contract SetupHunt is Script {
         require(creatorAddr != address(0), "CREATOR_ADDRESS not set");
         require(tokenAddr != address(0), "CUSD_ADDRESS not set");
         require(huntCreator != address(0), "HUNT_CREATOR not set");
+
+        // Load optional reward amounts (defaults to 0.04, 0.03, 0.03 ether)
+        uint256 clue1Reward = vm.envOr("CLUE1_REWARD", uint256(0.04 ether));
+        uint256 clue2Reward = vm.envOr("CLUE2_REWARD", uint256(0.03 ether));
+        uint256 clue3Reward = vm.envOr("CLUE3_REWARD", uint256(0.03 ether));
 
         TreasureHuntCreator creator = TreasureHuntCreator(creatorAddr);
         IERC20 token = IERC20(tokenAddr);
@@ -58,26 +70,27 @@ contract SetupHunt is Script {
         console.log("Hunt created with ID:", huntId);
 
         // 3. Add first clue with reward
-        console.log("Adding clue 1...");
+        console.log("Adding clue 1 with reward:", clue1Reward);
         string memory qr1 =
-            creator.addClueWithGeneratedQr(huntId, "Find the statue at the town square", 0.04 ether, "Town Square");
+            creator.addClueWithGeneratedQr(huntId, "Find the statue at the town square", clue1Reward, "Town Square");
         console.log("QR Code 1:", qr1);
 
         // 4. Add second clue with reward
-        console.log("Adding clue 2...");
+        console.log("Adding clue 2 with reward:", clue2Reward);
         string memory qr2 =
-            creator.addClueWithGeneratedQr(huntId, "Follow the river to the old bridge", 0.03 ether, "Old Bridge");
+            creator.addClueWithGeneratedQr(huntId, "Follow the river to the old bridge", clue2Reward, "Old Bridge");
         console.log("QR Code 2:", qr2);
 
         // 5. Add third clue with reward
-        console.log("Adding clue 3...");
+        console.log("Adding clue 3 with reward:", clue3Reward);
         string memory qr3 = creator.addClueWithGeneratedQr(
-            huntId, "The treasure is buried under the old oak tree", 0.03 ether, "Ancient Oak"
+            huntId, "The treasure is buried under the old oak tree", clue3Reward, "Ancient Oak"
         );
         console.log("QR Code 3:", qr3);
 
         // 6. Approve tokens and fund the hunt
-        uint256 totalReward = 0.1 ether; // 0.04 + 0.03 + 0.03 = 0.1 cUSD
+        uint256 totalReward = clue1Reward + clue2Reward + clue3Reward;
+        console.log("Total reward needed:", totalReward);
         console.log("Approving tokens for funding...");
         token.approve(creatorAddr, totalReward);
 
@@ -95,6 +108,9 @@ contract SetupHunt is Script {
         console.log("=== Hunt Setup Complete ===");
         console.log("Hunt ID:", huntId);
         console.log("Hunt Title:", huntTitle);
+        console.log("Clue 1 Reward:", clue1Reward);
+        console.log("Clue 2 Reward:", clue2Reward);
+        console.log("Clue 3 Reward:", clue3Reward);
         console.log("Total Reward Pool:", totalReward);
         console.log("Number of Clues: 3");
     }
