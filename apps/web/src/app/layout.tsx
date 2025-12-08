@@ -39,10 +39,10 @@ const frame = {
 
 export const metadata: Metadata = {
   title: 'PathFinderX',
-  description: 'A gamified treasure-hunt protocol that turns the world into an interactive playground. Players follow clues, complete challenges, and claim rewards — all secured transparently on Celo',
+  description: 'Gamified treasure hunt on Celo',
   openGraph: {
     title: 'PathFinderX',
-    description: 'A gamified treasure-hunt protocol that turns the world into an interactive playground. Players follow clues, complete challenges, and claim rewards — all secured transparently on Celo',
+    description: 'Gamified treasure hunt on Celo',
     images: [`${appUrl}/opengraph-image.png`],
   },
   other: {

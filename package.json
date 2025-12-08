@@ -1,7 +1,7 @@
 {
   "name": "farcaster-miniapp",
   "version": "0.1.0",
-  "description": "A gamified treasure-hunt protocol that turns the world into an interactive playground. Players follow clues, complete challenges, and claim rewards — all secured transparently on Celo",
+  "description": "Gamified treasure hunt on Celo",
   "private": true,
   "scripts": {
     "build": "turbo build",

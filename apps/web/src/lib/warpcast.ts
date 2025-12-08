@@ -52,13 +52,13 @@ export async function getFarcasterManifest() {
       splashBackgroundColor: "#FFFFFF",
       webhookUrl: `${appUrl}/api/webhook`,
       // Metadata https://github.com/farcasterxyz/miniapps/discussions/191
-      subtitle: "A gamified treasure-hunt protocol that turns the world into an interactive playground. Players follow clues, complete challenges, and claim rewards — all secured transparently on Celo", // 30 characters, no emojis or special characters, short description under app name
-      description: "A gamified treasure-hunt protocol that turns the world into an interactive playground. Players follow clues, complete challenges, and claim rewards — all secured transparently on Celo", // 170 characters, no emojis or special characters, promotional message displayed on Mini App Page
+      subtitle: "Gamified treasure hunt on Celo", // 30 characters, no emojis or special characters, short description under app name
+      description: "A gamified treasure-hunt on Celo where players solve clues, complete challenges, and earn rewards in a secure, interactive world.", // 170 characters, no emojis or special characters, promotional message displayed on Mini App Page
       primaryCategory: "social",
       tags: ["mini-app", "celo"], // up to 5 tags, filtering/search tags
       tagline: "Built on Celo", // 30 characters, marketing tagline should be punchy and descriptive
       ogTitle: `${frameName}`, // 30 characters, app name + short tag, Title case, no emojis
-      ogDescription: "A gamified treasure-hunt protocol that turns the world into an interactive playground. Players follow clues, complete challenges, and claim rewards — all secured transparently on Celo", // 100 characters, summarize core benefits in 1-2 lines
+      ogDescription: "Gamified treasure hunt on Celo", // 100 characters, summarize core benefits in 1-2 lines
       screenshotUrls: [
         // 1284 x 2778, visual previews of the app, max 3 screenshots
         `${appUrl}/opengraph-image.png`,
