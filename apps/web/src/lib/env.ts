@@ -7,7 +7,7 @@ export const env = createEnv({
     JWT_SECRET: z.string().min(1).optional().default("build-time-placeholder"),
   },
   client: {
-    NEXT_PUBLIC_URL: z.string().min(1).optional().default("http://localhost:3000"),
+    NEXT_PUBLIC_URL: z.string().min(1).optional().default(process.env.NEXT_PUBLIC_URL || "http://localhost:3000"),
     NEXT_PUBLIC_APP_ENV: z
       .enum(["development", "production"])
       .optional()
