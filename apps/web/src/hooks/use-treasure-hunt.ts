@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useChainId, useSwitchChain, usePublicClient } from "wagmi";
 import { useAccount } from "wagmi";
 import { Address } from "viem";
@@ -460,6 +460,394 @@ export function useApproveCUSD() {
     isPending,
     isConfirming,
     isConfirmed,
+    error,
+  };
+}
+
+// Leaderboard entry type
+export type LeaderboardEntry = {
+  player: Address;
+  cluesCompleted: number;
+  totalTime: number; // in seconds
+  isCompleted: boolean;
+  rank: number;
+  startTime: number;
+  completionTime: number | null;
+};
+
+// Hook to fetch and build leaderboard from events
+export function useHuntLeaderboard(huntId: number | null) {
+  const publicClient = usePublicClient({ chainId: CELO_MAINNET_CHAIN_ID });
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    const fetchLeaderboard = async () => {
+      if (!huntId || !publicClient) {
+        setLeaderboard([]);
+        return;
+      }
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        // Get current block number to limit search range
+        const currentBlock = await publicClient.getBlockNumber();
+        const fromBlock = currentBlock > 200000n ? currentBlock - 200000n : 0n;
+
+        // Fetch HuntStarted events
+        const startedLogs = await publicClient.getLogs({
+          address: TREASURE_HUNT_PLAYER_ADDRESS,
+          event: {
+            type: "event",
+            name: "HuntStarted",
+            inputs: [
+              { name: "huntId", type: "uint256", indexed: true },
+              { name: "player", type: "address", indexed: true },
+              { name: "timestamp", type: "uint256", indexed: false },
+            ],
+          } as const,
+          args: {
+            huntId: BigInt(huntId),
+          },
+          fromBlock,
+          toBlock: currentBlock,
+        });
+
+        // Fetch AnswerSubmitted events (only correct answers)
+        const answerLogs = await publicClient.getLogs({
+          address: TREASURE_HUNT_PLAYER_ADDRESS,
+          event: {
+            type: "event",
+            name: "AnswerSubmitted",
+            inputs: [
+              { name: "huntId", type: "uint256", indexed: true },
+              { name: "player", type: "address", indexed: true },
+              { name: "clueIndex", type: "uint256", indexed: false },
+              { name: "correct", type: "bool", indexed: false },
+              { name: "timestamp", type: "uint256", indexed: false },
+            ],
+          } as const,
+          args: {
+            huntId: BigInt(huntId),
+          },
+          fromBlock,
+          toBlock: currentBlock,
+        });
+
+        // Fetch HuntCompleted events
+        const completedLogs = await publicClient.getLogs({
+          address: TREASURE_HUNT_PLAYER_ADDRESS,
+          event: {
+            type: "event",
+            name: "HuntCompleted",
+            inputs: [
+              { name: "huntId", type: "uint256", indexed: true },
+              { name: "player", type: "address", indexed: true },
+              { name: "completionTime", type: "uint256", indexed: false },
+              { name: "totalReward", type: "uint256", indexed: false },
+              { name: "leaderboardPosition", type: "uint256", indexed: false },
+            ],
+          } as const,
+          args: {
+            huntId: BigInt(huntId),
+          },
+          fromBlock,
+          toBlock: currentBlock,
+        });
+
+        // Build player data map
+        const playerData = new Map<Address, {
+          startTime: number;
+          cluesCompleted: Set<number>;
+          completionTime: number | null;
+        }>();
+
+        // Process HuntStarted events
+        startedLogs.forEach((log: any) => {
+          const player = log.args.player as Address;
+          const timestamp = Number(log.args.timestamp);
+          if (!playerData.has(player)) {
+            playerData.set(player, {
+              startTime: timestamp,
+              cluesCompleted: new Set(),
+              completionTime: null,
+            });
+          } else {
+            // Update start time if earlier
+            const data = playerData.get(player)!;
+            if (timestamp < data.startTime) {
+              data.startTime = timestamp;
+            }
+          }
+        });
+
+        // Process AnswerSubmitted events (only correct answers)
+        answerLogs.forEach((log: any) => {
+          const player = log.args.player as Address;
+          const isCorrect = log.args.correct as boolean;
+          const clueIndex = Number(log.args.clueIndex);
+
+          if (isCorrect && playerData.has(player)) {
+            playerData.get(player)!.cluesCompleted.add(clueIndex);
+          }
+        });
+
+        // Process HuntCompleted events
+        completedLogs.forEach((log: any) => {
+          const player = log.args.player as Address;
+          const completionTime = Number(log.args.completionTime);
+          const data = playerData.get(player);
+          if (data) {
+            data.completionTime = completionTime;
+          }
+        });
+
+        // Convert to leaderboard entries
+        const entries: LeaderboardEntry[] = Array.from(playerData.entries()).map(([player, data]) => {
+          const isCompleted = data.completionTime !== null;
+          const totalTime = isCompleted && data.completionTime !== null
+            ? data.completionTime - data.startTime
+            : Math.floor(Date.now() / 1000) - data.startTime;
+
+          return {
+            player,
+            cluesCompleted: data.cluesCompleted.size,
+            totalTime,
+            isCompleted,
+            rank: 0, // Will be set after sorting
+            startTime: data.startTime,
+            completionTime: data.completionTime,
+          };
+        });
+
+        // Sort: Completed players by time (fastest first), then in-progress by clues completed (most first)
+        entries.sort((a, b) => {
+          if (a.isCompleted && b.isCompleted) {
+            return a.totalTime - b.totalTime; // Faster completion = better rank
+          }
+          if (a.isCompleted && !b.isCompleted) {
+            return -1; // Completed players rank higher
+          }
+          if (!a.isCompleted && b.isCompleted) {
+            return 1;
+          }
+          // Both in progress: sort by clues completed (descending)
+          return b.cluesCompleted - a.cluesCompleted;
+        });
+
+        // Assign ranks
+        entries.forEach((entry, index) => {
+          entry.rank = index + 1;
+        });
+
+        setLeaderboard(entries);
+      } catch (err: any) {
+        setError(err);
+        console.error("Error fetching leaderboard:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchLeaderboard();
+  }, [huntId, publicClient]);
+
+  return {
+    leaderboard,
+    isLoading,
+    error,
+  };
+}
+
+// Global leaderboard entry type
+export type GlobalLeaderboardEntry = {
+  player: Address;
+  huntsCompleted: number;
+  totalRewards: bigint;
+  totalCluesSolved: number;
+  bestCompletionTime: number | null; // in seconds
+  rank: number;
+};
+
+// Hook to fetch and build global leaderboard from events across all hunts
+export function useGlobalLeaderboard() {
+  const publicClient = usePublicClient({ chainId: CELO_MAINNET_CHAIN_ID });
+  const [leaderboard, setLeaderboard] = useState<GlobalLeaderboardEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    const fetchGlobalLeaderboard = async () => {
+      if (!publicClient) {
+        setLeaderboard([]);
+        return;
+      }
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        // Get current block number to limit search range
+        const currentBlock = await publicClient.getBlockNumber();
+        const fromBlock = currentBlock > 200000n ? currentBlock - 200000n : 0n;
+
+        // Fetch HuntCompleted events across all hunts
+        const completedLogs = await publicClient.getLogs({
+          address: TREASURE_HUNT_PLAYER_ADDRESS,
+          event: {
+            type: "event",
+            name: "HuntCompleted",
+            inputs: [
+              { name: "huntId", type: "uint256", indexed: true },
+              { name: "player", type: "address", indexed: true },
+              { name: "completionTime", type: "uint256", indexed: false },
+              { name: "totalReward", type: "uint256", indexed: false },
+              { name: "leaderboardPosition", type: "uint256", indexed: false },
+            ],
+          } as const,
+          fromBlock,
+          toBlock: currentBlock,
+        });
+
+        // Fetch AnswerSubmitted events (only correct answers) across all hunts
+        const answerLogs = await publicClient.getLogs({
+          address: TREASURE_HUNT_PLAYER_ADDRESS,
+          event: {
+            type: "event",
+            name: "AnswerSubmitted",
+            inputs: [
+              { name: "huntId", type: "uint256", indexed: true },
+              { name: "player", type: "address", indexed: true },
+              { name: "clueIndex", type: "uint256", indexed: false },
+              { name: "correct", type: "bool", indexed: false },
+              { name: "timestamp", type: "uint256", indexed: false },
+            ],
+          } as const,
+          fromBlock,
+          toBlock: currentBlock,
+        });
+
+        // Build player data map
+        const playerData = new Map<Address, {
+          huntsCompleted: number;
+          totalRewards: bigint;
+          totalCluesSolved: number;
+          bestCompletionTime: number | null;
+        }>();
+
+        // Process HuntCompleted events
+        completedLogs.forEach((log: any) => {
+          const player = log.args.player as Address;
+          const totalReward = log.args.totalReward as bigint;
+          const completionTime = Number(log.args.completionTime);
+
+          if (!playerData.has(player)) {
+            playerData.set(player, {
+              huntsCompleted: 1,
+              totalRewards: totalReward,
+              totalCluesSolved: 0,
+              bestCompletionTime: completionTime,
+            });
+          } else {
+            const data = playerData.get(player)!;
+            data.huntsCompleted++;
+            data.totalRewards += totalReward;
+            // Update best time if this is faster
+            if (data.bestCompletionTime === null || completionTime < data.bestCompletionTime) {
+              data.bestCompletionTime = completionTime;
+            }
+          }
+        });
+
+        // Process AnswerSubmitted events (only correct answers)
+        // Count unique (huntId, clueIndex) pairs per player to get total clues solved
+        const playerClueSet = new Map<Address, Set<string>>();
+        answerLogs.forEach((log: any) => {
+          const player = log.args.player as Address;
+          const isCorrect = log.args.correct as boolean;
+          const huntId = log.args.huntId as bigint;
+          const clueIndex = Number(log.args.clueIndex);
+
+          if (isCorrect) {
+            if (!playerClueSet.has(player)) {
+              playerClueSet.set(player, new Set());
+            }
+            // Use huntId:clueIndex as unique identifier
+            const clueKey = `${huntId.toString()}:${clueIndex}`;
+            playerClueSet.get(player)!.add(clueKey);
+          }
+        });
+
+        // Update total clues solved for each player
+        playerClueSet.forEach((clueSet, player) => {
+          if (!playerData.has(player)) {
+            playerData.set(player, {
+              huntsCompleted: 0,
+              totalRewards: 0n,
+              totalCluesSolved: clueSet.size,
+              bestCompletionTime: null,
+            });
+          } else {
+            playerData.get(player)!.totalCluesSolved = clueSet.size;
+          }
+        });
+
+        // Convert to leaderboard entries
+        const entries: GlobalLeaderboardEntry[] = Array.from(playerData.entries()).map(([player, data]) => ({
+          player,
+          huntsCompleted: data.huntsCompleted,
+          totalRewards: data.totalRewards,
+          totalCluesSolved: data.totalCluesSolved,
+          bestCompletionTime: data.bestCompletionTime,
+          rank: 0, // Will be set after sorting
+        }));
+
+        // Sort: Primary by hunts completed (descending), then by total rewards (descending), then by best time (ascending)
+        entries.sort((a, b) => {
+          // First sort by hunts completed
+          if (a.huntsCompleted !== b.huntsCompleted) {
+            return b.huntsCompleted - a.huntsCompleted;
+          }
+          // Then by total rewards
+          if (a.totalRewards !== b.totalRewards) {
+            return a.totalRewards > b.totalRewards ? -1 : 1;
+          }
+          // Then by best completion time (faster is better)
+          if (a.bestCompletionTime !== null && b.bestCompletionTime !== null) {
+            return a.bestCompletionTime - b.bestCompletionTime;
+          }
+          if (a.bestCompletionTime !== null && b.bestCompletionTime === null) {
+            return -1;
+          }
+          if (a.bestCompletionTime === null && b.bestCompletionTime !== null) {
+            return 1;
+          }
+          return 0;
+        });
+
+        // Assign ranks
+        entries.forEach((entry, index) => {
+          entry.rank = index + 1;
+        });
+
+        setLeaderboard(entries);
+      } catch (err: any) {
+        setError(err);
+        console.error("Error fetching global leaderboard:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchGlobalLeaderboard();
+  }, [publicClient]);
+
+  return {
+    leaderboard,
+    isLoading,
     error,
   };
 }

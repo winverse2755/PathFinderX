@@ -3,10 +3,11 @@
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useBrowseHunts, useSelectHunt, useGetDetailedProgress } from "@/hooks/use-treasure-hunt";
+import { useBrowseHunts, useSelectHunt, useGetDetailedProgress, useHuntLeaderboard, useGlobalLeaderboard } from "@/hooks/use-treasure-hunt";
 import { useAccount } from "wagmi";
+import { Address } from "viem";
 import { formatCUSD } from "@/lib/treasure-hunt-utils";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 export default function LeaderboardPage() {
   const router = useRouter();
@@ -46,21 +47,7 @@ export default function LeaderboardPage() {
       </div>
 
       {selectedHuntId === null ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Global Leaderboard</CardTitle>
-            <CardDescription>
-              Rankings across all hunts (coming soon - requires event indexing)
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-gray-500 text-center py-8">
-              Global leaderboard requires indexing hunt completion events.
-              <br />
-              For now, check individual hunt leaderboards.
-            </p>
-          </CardContent>
-        </Card>
+        <GlobalLeaderboard />
       ) : (
         <HuntLeaderboard huntId={selectedHuntId} />
       )}
@@ -72,9 +59,107 @@ function HuntOption({ hunt }: { hunt: { id: number; title: string } }) {
   return <option value={hunt.id}>{hunt.title}</option>;
 }
 
+function GlobalLeaderboard() {
+  const { address } = useAccount();
+  const { leaderboard, isLoading, error } = useGlobalLeaderboard();
+
+  const formatTime = (seconds: number | null): string => {
+    if (seconds === null) return "N/A";
+    if (seconds < 60) return `${seconds}s`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${hours}h ${minutes}m ${secs}s`;
+  };
+
+  const truncateAddress = (addr: Address): string => {
+    return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Global Leaderboard</CardTitle>
+        <CardDescription>
+          Rankings across all hunts based on completion events
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="text-center py-8">
+            <p className="text-gray-500">Loading global leaderboard...</p>
+          </div>
+        ) : error ? (
+          <div className="text-center py-8">
+            <p className="text-red-500">Error loading leaderboard: {error.message}</p>
+          </div>
+        ) : leaderboard.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-gray-500">No players have completed any hunts yet.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b-2 border-celo-purple">
+                  <th className="text-left p-3 text-celo-purple font-bold">Rank</th>
+                  <th className="text-left p-3 text-celo-purple font-bold">Player</th>
+                  <th className="text-left p-3 text-celo-purple font-bold">Hunts</th>
+                  <th className="text-left p-3 text-celo-purple font-bold">Clues Solved</th>
+                  <th className="text-left p-3 text-celo-purple font-bold">Total Rewards</th>
+                  <th className="text-left p-3 text-celo-purple font-bold">Best Time</th>
+                </tr>
+              </thead>
+              <tbody>
+                {leaderboard.map((entry) => {
+                  const isCurrentPlayer = address?.toLowerCase() === entry.player.toLowerCase();
+                  return (
+                    <tr
+                      key={entry.player}
+                      className={`border-b transition-premium ${
+                        isCurrentPlayer ? "bg-celo-yellow/20 font-medium" : "hover:bg-gray-50"
+                      }`}
+                    >
+                      <td className="p-3">
+                        <span className="text-celo-purple font-bold">#{entry.rank}</span>
+                      </td>
+                      <td className="p-3">
+                        <span className={isCurrentPlayer ? "text-celo-purple" : ""}>
+                          {truncateAddress(entry.player)}
+                          {isCurrentPlayer && " (You)"}
+                        </span>
+                      </td>
+                      <td className="p-3">
+                        <span className="text-celo-brown font-medium">{entry.huntsCompleted}</span>
+                      </td>
+                      <td className="p-3">
+                        <span className="text-celo-brown">{entry.totalCluesSolved}</span>
+                      </td>
+                      <td className="p-3">
+                        <span className="text-celo-green font-medium">
+                          {formatCUSD(entry.totalRewards)} cUSD
+                        </span>
+                      </td>
+                      <td className="p-3">
+                        <span className="text-celo-brown">{formatTime(entry.bestCompletionTime)}</span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 function HuntLeaderboard({ huntId }: { huntId: number }) {
   const { hunt } = useSelectHunt(huntId);
   const { address } = useAccount();
+  const { leaderboard, isLoading, error } = useHuntLeaderboard(huntId);
 
   if (!hunt) {
     return (
@@ -86,8 +171,19 @@ function HuntLeaderboard({ huntId }: { huntId: number }) {
     );
   }
 
-  // Note: In a production app, you'd index events to get all players
-  // For now, we'll just show a placeholder
+  const formatTime = (seconds: number): string => {
+    if (seconds < 60) return `${seconds}s`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${hours}h ${minutes}m ${secs}s`;
+  };
+
+  const truncateAddress = (addr: Address): string => {
+    return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -97,20 +193,76 @@ function HuntLeaderboard({ huntId }: { huntId: number }) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <p className="text-gray-500 text-center py-8">
-          Hunt-specific leaderboard requires event indexing to track all players.
-          <br />
-          <br />
-          In production, this would show:
-          <br />
-          • All players who started the hunt
-          <br />
-          • Clues completed by each player
-          <br />
-          • Total time taken
-          <br />
-          • Rank based on completion time
-        </p>
+        {isLoading ? (
+          <div className="text-center py-8">
+            <p className="text-gray-500">Loading leaderboard...</p>
+          </div>
+        ) : error ? (
+          <div className="text-center py-8">
+            <p className="text-red-500">Error loading leaderboard: {error.message}</p>
+          </div>
+        ) : leaderboard.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-gray-500">No players have started this hunt yet.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b-2 border-celo-purple">
+                  <th className="text-left p-3 text-celo-purple font-bold">Rank</th>
+                  <th className="text-left p-3 text-celo-purple font-bold">Player</th>
+                  <th className="text-left p-3 text-celo-purple font-bold">Clues</th>
+                  <th className="text-left p-3 text-celo-purple font-bold">Time</th>
+                  <th className="text-left p-3 text-celo-purple font-bold">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {leaderboard.map((entry) => {
+                  const isCurrentPlayer = address?.toLowerCase() === entry.player.toLowerCase();
+                  return (
+                    <tr
+                      key={entry.player}
+                      className={`border-b transition-premium ${
+                        isCurrentPlayer ? "bg-celo-yellow/20 font-medium" : "hover:bg-gray-50"
+                      }`}
+                    >
+                      <td className="p-3">
+                        <span className="text-celo-purple font-bold">#{entry.rank}</span>
+                      </td>
+                      <td className="p-3">
+                        <span className={isCurrentPlayer ? "text-celo-purple" : ""}>
+                          {truncateAddress(entry.player)}
+                          {isCurrentPlayer && " (You)"}
+                        </span>
+                      </td>
+                      <td className="p-3">
+                        <span className="text-celo-brown">
+                          {entry.cluesCompleted} / {hunt.clueCount}
+                        </span>
+                      </td>
+                      <td className="p-3">
+                        <span className="text-celo-brown">{formatTime(entry.totalTime)}</span>
+                      </td>
+                      <td className="p-3">
+                        {entry.isCompleted ? (
+                          <span className="px-2 py-1 bg-celo-green text-white rounded text-sm font-medium">
+                            ✓ Completed
+                          </span>
+                        ) : (
+                          <span className="px-2 py-1 bg-celo-orange text-white rounded text-sm font-medium">
+                            In Progress
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
         {address && (
           <div className="mt-6 p-4 bg-gray-50 rounded-lg">
             <p className="font-medium mb-2">Your Progress</p>
