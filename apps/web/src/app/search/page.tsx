@@ -13,7 +13,6 @@ export default function SearchPage() {
   const { hunts } = useBrowseHunts();
   const [searchQuery, setSearchQuery] = useState("");
   
-  // Sort hunts by newest first
   const sortedHunts = [...hunts].sort((a, b) => b.id - a.id);
   
   const filteredHunts = sortedHunts.filter((hunt) => {
@@ -25,33 +24,50 @@ export default function SearchPage() {
   });
 
   return (
-    <main className="flex-1 bg-celo-tan-light min-h-screen">
-      <div className="container mx-auto px-6 py-12 max-w-7xl">
+    <main className="flex-1 bg-game-bg min-h-screen relative overflow-hidden">
+      {/* Background effects */}
+      <div className="absolute inset-0 bg-grid-pattern opacity-50"></div>
+      <div className="absolute inset-0 bg-gradient-radial"></div>
+      
+      <div className="container relative mx-auto px-6 py-12 max-w-7xl">
         {/* Search Header */}
-        <div className="mb-12 border-4 border-celo-purple bg-celo-yellow p-8 md:p-12 animate-fade-in shadow-lg hover-lift">
-          <h1 className="text-display text-5xl md:text-7xl font-display font-light italic text-celo-purple mb-6 leading-tight">
-            Search <span className="not-italic">Hunts</span>
+        <div className="mb-12 bg-game-surface border border-game-primary/30 rounded-lg p-8 md:p-12 animate-fade-in shadow-card">
+          <div className="flex items-center gap-3 mb-4">
+            <Search className="w-6 h-6 text-game-accent" />
+            <span className="font-game text-sm text-game-accent tracking-widest uppercase">Discovery</span>
+          </div>
+          <h1 className="font-game text-4xl md:text-6xl font-bold tracking-wider mb-6 leading-tight">
+            <span className="gradient-text">Search</span>{" "}
+            <span className="text-white">Hunts</span>
           </h1>
           <div className="relative max-w-2xl">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-6 w-6 text-celo-brown" />
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-game-text-muted" />
             <Input
               type="text"
               placeholder="Search by title or description..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-12 h-14 text-lg border-4 border-celo-purple bg-white text-celo-purple"
+              className="pl-12 h-14 text-lg"
             />
           </div>
+          {searchQuery && (
+            <p className="font-game text-sm text-game-text-muted mt-4">
+              Found <span className="text-game-accent font-bold">{filteredHunts.length}</span> hunt(s) matching &quot;{searchQuery}&quot;
+            </p>
+          )}
         </div>
 
         {/* Results */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {filteredHunts.length === 0 ? (
-            <div className="col-span-full border-4 border-celo-purple bg-white p-12 text-center animate-fade-in">
-              <p className="text-body-bold text-2xl text-celo-purple mb-2">
+            <div className="col-span-full bg-game-surface border border-game-primary/30 rounded-lg p-12 text-center animate-fade-in">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-game-primary/20 flex items-center justify-center">
+                <Search className="w-8 h-8 text-game-primary" />
+              </div>
+              <p className="font-game text-xl text-white mb-2">
                 {searchQuery ? "No hunts found." : "No hunts available yet."}
               </p>
-              <p className="text-body-bold text-lg text-celo-brown">
+              <p className="font-game text-game-text-muted">
                 {searchQuery ? "Try a different search term." : "Be the first to create one!"}
               </p>
             </div>
@@ -72,27 +88,36 @@ function HuntCard({ hunt }: { hunt: { id: number; title: string; description: st
   const totalReward = formatCUSD(hunt.reward);
 
   return (
-    <Card className="hover:border-celo-yellow transition-premium hover-lift group">
-      <CardHeader className="border-b-4 border-celo-purple">
-        <CardTitle className="line-clamp-2 group-hover:text-celo-green transition-colors">{hunt.title}</CardTitle>
+    <Card className="hover:border-game-primary/60 hover:shadow-glow-primary transition-all duration-300 group">
+      <CardHeader>
+        <div className="flex items-center justify-between mb-2">
+          <span className="token-rare px-2 py-1 text-xs font-game font-semibold">
+            #{hunt.id}
+          </span>
+          <span className="flex items-center gap-1 text-game-accent text-sm font-game">
+            <span className="w-2 h-2 rounded-full bg-game-success animate-pulse"></span>
+            Active
+          </span>
+        </div>
+        <CardTitle className="line-clamp-2 group-hover:text-game-primary transition-colors">{hunt.title}</CardTitle>
         <CardDescription className="line-clamp-2 mt-2">{hunt.description}</CardDescription>
       </CardHeader>
-      <CardContent className="pt-6">
-        <div className="space-y-4">
-          <div className="flex justify-between items-center border-2 border-celo-purple bg-celo-tan-light p-4 transition-premium group-hover:border-celo-yellow group-hover:bg-celo-yellow/20">
-            <span className="text-body-bold text-celo-purple">Clues:</span>
-            <span className="text-body-bold text-lg text-celo-purple font-bold">{hunt.clueCount}</span>
+      <CardContent className="pt-4">
+        <div className="space-y-3">
+          <div className="flex justify-between items-center bg-game-bg/50 border border-game-primary/20 rounded-md p-3 transition-all group-hover:border-game-primary/40">
+            <span className="font-game text-sm text-game-text-muted">Clues</span>
+            <span className="font-game text-lg text-white font-bold">{hunt.clueCount}</span>
           </div>
-          <div className="flex justify-between items-center border-2 border-celo-green bg-celo-green/10 p-4 transition-premium group-hover:border-celo-green group-hover:bg-celo-green/20">
-            <span className="text-body-bold text-celo-purple">Reward:</span>
-            <span className="text-body-bold text-lg text-celo-green font-bold">{totalReward} cUSD</span>
+          <div className="flex justify-between items-center bg-game-secondary/10 border border-game-secondary/30 rounded-md p-3 transition-all group-hover:border-game-secondary/50">
+            <span className="font-game text-sm text-game-text-muted">Reward</span>
+            <span className="font-game text-lg text-game-secondary font-bold">{totalReward} cUSD</span>
           </div>
-          <div className="flex justify-between items-center border-2 border-celo-purple bg-celo-tan-dark p-4 transition-premium group-hover:border-celo-purple group-hover:bg-celo-purple/10">
-            <span className="text-body-bold text-celo-purple">Participants:</span>
-            <span className="text-body-bold text-lg text-celo-purple font-bold">{hunt.participants}</span>
+          <div className="flex justify-between items-center bg-game-bg/50 border border-game-primary/20 rounded-md p-3 transition-all group-hover:border-game-primary/40">
+            <span className="font-game text-sm text-game-text-muted">Players</span>
+            <span className="font-game text-lg text-white font-bold">{hunt.participants}</span>
           </div>
           <Link href={`/hunt/${hunt.id}`} className="block">
-            <Button className="w-full border-4 transition-premium hover-lift" size="lg">
+            <Button className="w-full hover-lift" size="lg">
               Start Hunt
             </Button>
           </Link>
@@ -101,4 +126,3 @@ function HuntCard({ hunt }: { hunt: { id: number; title: string; description: st
     </Card>
   );
 }
-

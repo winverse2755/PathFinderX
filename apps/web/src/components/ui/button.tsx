@@ -4,19 +4,20 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center whitespace-nowrap border-2 text-body-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-celo-yellow disabled:pointer-events-none disabled:opacity-50',
+  'inline-flex items-center justify-center whitespace-nowrap font-game font-semibold tracking-wide transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-game-primary focus-visible:ring-offset-2 focus-visible:ring-offset-game-bg disabled:pointer-events-none disabled:opacity-50',
   {
     variants: {
       variant: {
-        default: 'bg-celo-yellow border-celo-purple text-celo-purple hover:bg-celo-purple hover:text-celo-yellow',
+        default: 'bg-game-primary text-white border border-game-primary/50 rounded-md shadow-button hover:bg-game-primary/80 hover:shadow-glow-primary',
         destructive:
-          'bg-celo-orange border-celo-purple text-celo-purple hover:bg-celo-purple hover:text-celo-orange',
+          'bg-game-error text-white border border-game-error/50 rounded-md shadow-button hover:bg-game-error/80',
         outline:
-          'border-2 border-celo-purple bg-transparent text-celo-purple hover:bg-celo-purple hover:text-celo-yellow',
+          'border-2 border-game-primary bg-transparent text-game-primary rounded-md hover:bg-game-primary hover:text-white',
         secondary:
-          'bg-celo-green border-celo-purple text-celo-yellow hover:bg-celo-purple hover:text-celo-yellow',
-        ghost: 'border-transparent text-celo-purple hover:bg-celo-tan-medium hover:border-celo-purple',
-        link: 'border-transparent text-celo-purple underline-offset-4 hover:underline',
+          'bg-game-secondary text-game-bg border border-game-secondary/50 rounded-md shadow-button hover:bg-game-secondary/80 hover:shadow-glow-secondary',
+        ghost: 'border-transparent text-game-text-muted hover:bg-game-surface hover:text-white rounded-md',
+        link: 'border-transparent text-game-primary underline-offset-4 hover:underline',
+        accent: 'bg-game-accent text-game-bg border border-game-accent/50 rounded-md shadow-button hover:bg-game-accent/80 hover:shadow-glow-accent',
       },
       size: {
         default: 'h-12 px-6 py-3 text-base',

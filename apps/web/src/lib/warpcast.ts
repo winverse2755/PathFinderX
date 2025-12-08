@@ -11,18 +11,18 @@ export async function getFarcasterManifest() {
   const noindex = appUrl.includes("localhost") || appUrl.includes("ngrok") || appUrl.includes("https://dev.");
 
   // Check if account association is properly configured
-  const hasValidAccountAssociation = 
+  const hasValidAccountAssociation =
     env.NEXT_PUBLIC_FARCASTER_HEADER !== "build-time-placeholder" &&
     env.NEXT_PUBLIC_FARCASTER_PAYLOAD !== "build-time-placeholder" &&
     env.NEXT_PUBLIC_FARCASTER_SIGNATURE !== "build-time-placeholder";
 
   // In development mode, allow placeholder values for testing
   const isDevelopment = env.NEXT_PUBLIC_APP_ENV === "development" || appUrl.includes("localhost");
-  
+
   if (!hasValidAccountAssociation && !isDevelopment) {
     throw new Error(
-      "Account association not configured. Please generate your account association at: https://farcaster.xyz/~/developers/mini-apps/manifest?domain=" + 
-      new URL(appUrl).hostname + 
+      "Account association not configured. Please generate your account association at: https://farcaster.xyz/~/developers/mini-apps/manifest?domain=" +
+      new URL(appUrl).hostname +
       " and set the NEXT_PUBLIC_FARCASTER_HEADER, NEXT_PUBLIC_FARCASTER_PAYLOAD, and NEXT_PUBLIC_FARCASTER_SIGNATURE environment variables."
     );
   }
