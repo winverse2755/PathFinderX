@@ -40,9 +40,9 @@ export function Navbar() {
                 <Image
                   src="/logo.jpg"
                   alt="PathFinderX Logo"
-                  width={40}
-                  height={40}
-                  className="flex-shrink-0"
+                  width={48}
+                  height={48}
+                  className="flex-shrink-0 w-12 h-12"
                   priority
                 />
                 <span className="text-display text-3xl font-display font-light italic text-celo-purple">
@@ -85,9 +85,9 @@ export function Navbar() {
             <Image
               src="/logo.jpg"
               alt="PathFinderX Logo"
-              width={32}
-              height={32}
-              className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 group-hover:scale-105 transition-transform"
+              width={40}
+              height={40}
+              className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 group-hover:scale-105 transition-transform"
               priority
             />
             <span className="text-display text-2xl sm:text-3xl font-display font-light italic text-celo-purple group-hover:scale-105 transition-transform">
