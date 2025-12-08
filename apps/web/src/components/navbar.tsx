@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Menu, ExternalLink } from "lucide-react"
+import Image from "next/image"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -35,7 +36,15 @@ export function Navbar() {
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="w-80 bg-celo-tan-light border-r-4 border-celo-purple">
-              <div className="flex items-center gap-2 mb-8 animate-fade-in">
+              <div className="flex items-center gap-3 mb-8 animate-fade-in">
+                <Image
+                  src="/logo.jpg"
+                  alt="PathFinderX Logo"
+                  width={40}
+                  height={40}
+                  className="flex-shrink-0"
+                  priority
+                />
                 <span className="text-display text-3xl font-display font-light italic text-celo-purple">
                   PathFinderX
                 </span>
@@ -72,7 +81,15 @@ export function Navbar() {
           </Sheet>
 
           {/* Logo */}
-          <Link href="/" className="flex items-center hover:opacity-90 transition-premium group">
+          <Link href="/" className="flex items-center gap-2 sm:gap-3 hover:opacity-90 transition-premium group">
+            <Image
+              src="/logo.jpg"
+              alt="PathFinderX Logo"
+              width={32}
+              height={32}
+              className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 group-hover:scale-105 transition-transform"
+              priority
+            />
             <span className="text-display text-2xl sm:text-3xl font-display font-light italic text-celo-purple group-hover:scale-105 transition-transform">
               PathFinderX
             </span>
