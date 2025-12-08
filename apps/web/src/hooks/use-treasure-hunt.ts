@@ -111,13 +111,14 @@ export function useCreateHunt() {
   };
 }
 
-export function useAddClueWithGeneratedQr() {
+export function useAddClue() {
   const { writeContract, hash, isPending, isConfirming, isConfirmed, error } =
     useTreasureHuntContract();
 
-  const addClueWithGeneratedQr = (
+  const addClue = (
     huntId: number,
     clueText: string,
+    answer: string,
     reward: string,
     location: string
   ) => {
@@ -125,13 +126,13 @@ export function useAddClueWithGeneratedQr() {
     writeContract({
       address: TREASURE_HUNT_CREATOR_ADDRESS,
       abi: TREASURE_HUNT_CREATOR_ABI,
-      functionName: "addClueWithGeneratedQr",
-      args: [BigInt(huntId), clueText, rewardAmount, location],
+      functionName: "addClue",
+      args: [BigInt(huntId), clueText, answer, rewardAmount, location],
     });
   };
 
   return {
-    addClueWithGeneratedQr,
+    addClue,
     hash,
     isPending,
     isConfirming,
@@ -297,6 +298,7 @@ export function useViewCurrentClue(huntId: number | null, enabled: boolean = tru
     abi: TREASURE_HUNT_PLAYER_ABI,
     functionName: "viewCurrentClue",
     args: huntId !== null ? [BigInt(huntId)] : undefined,
+    account: address, // Explicitly set account so msg.sender is the connected wallet
     chainId: CELO_MAINNET_CHAIN_ID,
     query: { enabled: huntId !== null && enabled && !!address },
   });
@@ -384,6 +386,7 @@ export function useGetDetailedProgress(huntId: number | null) {
   };
 }
 
+
 // cUSD hooks
 export function useCUSDBalance() {
   const { address } = useAccount();
@@ -446,60 +449,3 @@ export function useApproveCUSD() {
   };
 }
 
-// Hook to fetch QR codes from ClueAddedWithQR events
-export function useFetchQRCodes(huntId: number | null) {
-  const publicClient = usePublicClient({ chainId: CELO_MAINNET_CHAIN_ID });
-  const [qrStrings, setQrStrings] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-
-  const fetchQRCodes = async () => {
-    if (!huntId || !publicClient) return;
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      // Fetch ClueAddedWithQR events for this hunt
-      const logs = await publicClient.getLogs({
-        address: TREASURE_HUNT_CREATOR_ADDRESS,
-        event: {
-          type: "event",
-          name: "ClueAddedWithQR",
-          inputs: [
-            { name: "huntId", type: "uint256", indexed: true },
-            { name: "clueIndex", type: "uint256", indexed: false },
-            { name: "qr", type: "string", indexed: false },
-          ],
-        } as const,
-        args: {
-          huntId: BigInt(huntId),
-        },
-        fromBlock: 0n, // Search from genesis
-      });
-
-      // Extract QR strings and sort by clueIndex
-      const qrData = logs
-        .map((log: any) => ({
-          clueIndex: Number(log.args.clueIndex),
-          qr: log.args.qr as string,
-        }))
-        .sort((a, b) => a.clueIndex - b.clueIndex)
-        .map((item) => item.qr);
-
-      setQrStrings(qrData);
-    } catch (err: any) {
-      setError(err);
-      console.error("Error fetching QR codes:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return {
-    qrStrings,
-    isLoading,
-    error,
-    fetchQRCodes,
-  };
-}

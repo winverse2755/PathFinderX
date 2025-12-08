@@ -6,10 +6,8 @@ import { useAccount } from "wagmi";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { QRScanner } from "@/components/qr-scanner";
 import { useSelectHunt, useViewCurrentClue, useGetDetailedProgress, useSubmitAnswer, useStartHunt, useIsHuntCreator } from "@/hooks/use-treasure-hunt";
 import { formatCUSD } from "@/lib/treasure-hunt-utils";
-import { parseQRCodeURL } from "@/lib/constants";
 
 export default function HuntPage() {
   const params = useParams();
@@ -21,9 +19,7 @@ export default function HuntPage() {
   const { isCreator } = useIsHuntCreator(huntId);
   const hasStarted = progress?.hasStarted ?? false;
   const { clue, isLoading: isLoadingClue, error: clueError, refetch: refetchClue } = useViewCurrentClue(huntId, hasStarted);
-  const [showQRScanner, setShowQRScanner] = useState(false);
-  const [manualAnswer, setManualAnswer] = useState("");
-  const [showManualInput, setShowManualInput] = useState(false);
+  const [answer, setAnswer] = useState("");
   const [submissionStatus, setSubmissionStatus] = useState<{
     type: "success" | "error" | null;
     message: string;
@@ -32,21 +28,6 @@ export default function HuntPage() {
   const { submitAnswer, hash, isPending, isConfirming, isConfirmed, error } = useSubmitAnswer();
   const { startHunt, hash: startHash, isPending: isStartPending, isConfirming: isStartConfirming, isConfirmed: isStartConfirmed } = useStartHunt();
 
-  const handleQRScan = (result: string) => {
-    setShowQRScanner(false);
-    const parsed = parseQRCodeURL(result);
-    const currentClueIdx = progress?.currentClue ?? 0;
-    if (parsed && parsed.huntId === huntId && parsed.clueIndex === currentClueIdx) {
-      // Extract answer from QR (we'll need to store it when generating QR)
-      // For now, we'll use manual input
-      setShowManualInput(true);
-    } else {
-      setSubmissionStatus({
-        type: "error",
-        message: "Invalid QR code for this clue",
-      });
-    }
-  };
 
   const handleStartHunt = async () => {
     if (!isConnected || !address) {
@@ -110,8 +91,7 @@ export default function HuntPage() {
       // Reset after a delay
       setTimeout(() => {
         setSubmissionStatus({ type: null, message: "" });
-        setManualAnswer("");
-        setShowManualInput(false);
+        setAnswer("");
       }, 3000);
     }
   }, [isConfirmed, refetchProgress, refetchClue]);
@@ -129,12 +109,21 @@ export default function HuntPage() {
   useEffect(() => {
     if (clueError) {
       const errorMessage = clueError.message || clueError.toString() || "Failed to load clue";
+      // Add debugging info to error message
+      const debugInfo = address ? ` (Address: ${address.slice(0, 6)}...${address.slice(-4)})` : " (No address)";
+      const progressInfo = progress ? ` | Progress: hasStarted=${progress.hasStarted}, startTime=${progress.startTime}` : " | No progress data";
       setSubmissionStatus({
         type: "error",
-        message: errorMessage,
+        message: `${errorMessage}${debugInfo}${progressInfo}`,
+      });
+      console.error("Clue error details:", {
+        error: clueError,
+        address,
+        progress,
+        huntId,
       });
     }
-  }, [clueError]);
+  }, [clueError, address, progress, huntId]);
 
   useEffect(() => {
     if (isStartConfirmed) {
@@ -142,11 +131,30 @@ export default function HuntPage() {
         type: "success",
         message: "Hunt started successfully!",
       });
-      // Refetch progress data and clue after a short delay to ensure block is confirmed
-      setTimeout(() => {
-        refetchProgress();
-        refetchClue();
-      }, 1000);
+      // Refetch progress data first to verify on-chain state
+      // Then refetch clue after ensuring progress shows hasStarted = true
+      const checkAndRefetch = async () => {
+        // First refetch to get updated progress
+        await refetchProgress();
+        
+        // Wait a bit for state to propagate
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Refetch again to ensure we have latest state
+        await refetchProgress();
+        
+        // Only refetch clue if progress shows hunt has started
+        // This prevents calling viewCurrentClue before playerStartTime is set
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        await refetchProgress();
+        
+        // Final refetch of clue after ensuring state is updated
+        setTimeout(() => {
+          refetchClue();
+        }, 1000);
+      };
+      
+      checkAndRefetch();
     }
   }, [isStartConfirmed, refetchProgress, refetchClue]);
 
@@ -292,63 +300,28 @@ export default function HuntPage() {
               </div>
             )}
 
-            {showManualInput ? (
-              <div className="space-y-4 animate-fade-in">
-                <Input
-                  type="text"
-                  value={manualAnswer}
-                  onChange={(e) => setManualAnswer(e.target.value)}
-                  placeholder="Enter your answer"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      handleSubmitAnswer(manualAnswer);
-                    }
-                  }}
-                  className="text-lg"
-                />
-                <div className="flex gap-4">
-                  <Button
-                    onClick={() => handleSubmitAnswer(manualAnswer)}
-                    disabled={isPending || isConfirming || !manualAnswer.trim()}
-                    className="flex-1 border-4 transition-premium hover-lift"
-                    size="lg"
-                  >
-                    {isPending || isConfirming ? "Submitting..." : "Submit Answer"}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setShowManualInput(false);
-                      setManualAnswer("");
-                    }}
-                    className="border-4 transition-premium hover-lift"
-                    size="lg"
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="flex gap-4">
-                <Button
-                  onClick={() => setShowQRScanner(true)}
-                  className="flex-1 border-4 transition-premium hover-lift"
-                  disabled={isPending || isConfirming}
-                  size="lg"
-                >
-                  Scan QR Code
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setShowManualInput(true)}
-                  disabled={isPending || isConfirming}
-                  className="flex-1 border-4 transition-premium hover-lift"
-                  size="lg"
-                >
-                  Enter Manually
-                </Button>
-              </div>
-            )}
+            <div className="space-y-4 animate-fade-in">
+              <Input
+                type="text"
+                value={answer}
+                onChange={(e) => setAnswer(e.target.value)}
+                placeholder="Enter your answer"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleSubmitAnswer(answer);
+                  }
+                }}
+                className="text-lg"
+              />
+              <Button
+                onClick={() => handleSubmitAnswer(answer)}
+                disabled={isPending || isConfirming || !answer.trim()}
+                className="w-full border-4 transition-premium hover-lift"
+                size="lg"
+              >
+                {isPending || isConfirming ? "Submitting..." : "Submit Answer"}
+              </Button>
+            </div>
           </CardContent>
         </Card>
       ) : (
@@ -376,12 +349,6 @@ export default function HuntPage() {
         </Card>
       )}
 
-      {showQRScanner && (
-        <QRScanner
-          onScan={handleQRScan}
-          onClose={() => setShowQRScanner(false)}
-        />
-      )}
     </div>
   );
 }

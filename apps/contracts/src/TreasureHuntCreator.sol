@@ -43,13 +43,10 @@ contract TreasureHuntCreator is Ownable {
     // Map player-contract huntId -> original creator address
     mapping(uint256 => address) public huntOwner;
 
-    // Nonce used for token generation
-    uint256 private nonce;
-
     event CreatorRegistered(address indexed creator);
     event CreatorUnregistered(address indexed creator);
     event HuntCreated(uint256 indexed huntId, address indexed owner);
-    event ClueAddedWithQR(uint256 indexed huntId, uint256 clueIndex, string qr);
+    event ClueAdded(uint256 indexed huntId, uint256 clueIndex);
     event HuntFunded(uint256 indexed huntId, uint256 amount);
     event HuntPublished(uint256 indexed huntId);
 
@@ -96,40 +93,32 @@ contract TreasureHuntCreator is Ownable {
     }
 
     /**
-     * @notice Add a clue and auto-generate a token that can be used in a QR code. The token
-     * is stored as the clue answer in the `TreasureHuntPlayer` (which stores a hash).
+     * @notice Add a clue with a provided answer. The answer is stored as a hash in the `TreasureHuntPlayer`.
      * @dev Caller must be the registered owner of the hunt (logical owner stored in this contract).
+     * @param _huntId The hunt to add a clue to
+     * @param _clueText The clue riddle/instruction
+     * @param _answer The answer string (will be hashed by the Player contract)
+     * @param _reward The cUSD reward for solving this clue
+     * @param _location Optional location hint
      */
-    function addClueWithGeneratedQr(uint256 _huntId, string memory _clueText, uint256 _reward, string memory _location)
-        external
-        onlyRegistered
-        returns (string memory)
-    {
+    function addClue(
+        uint256 _huntId,
+        string memory _clueText,
+        string memory _answer,
+        uint256 _reward,
+        string memory _location
+    ) external onlyRegistered {
         require(huntOwner[_huntId] == msg.sender, "Not owner of hunt");
 
         // Read current clueCount from player to determine the index after add
         (,,,, uint256 clueCount,,,,,) = PLAYER.hunts(_huntId);
 
-        // generate token
-        bytes32 token = keccak256(abi.encodePacked(block.timestamp, msg.sender, _huntId, nonce));
-        nonce++;
-
-        string memory tokenStr = _toHexString(token);
-
-        // add clue on behalf of this contract; player will hash the answer (tokenStr)
-        PLAYER.addClue(_huntId, _clueText, tokenStr, _reward, _location);
+        // Add clue on behalf of this contract; player will hash the answer
+        PLAYER.addClue(_huntId, _clueText, _answer, _reward, _location);
 
         uint256 newClueIndex = clueCount; // addClue appends at previous length
 
-        // Build a QR-style URI that frontend can convert to a scannable QR code
-        string memory qr = string(
-            abi.encodePacked(
-                "celo-hunt://hunt/", _toDecString(_huntId), "/clue/", _toDecString(newClueIndex), "/token/", tokenStr
-            )
-        );
-
-        emit ClueAddedWithQR(_huntId, newClueIndex, qr);
-        return qr;
+        emit ClueAdded(_huntId, newClueIndex);
     }
 
     /**
@@ -165,42 +154,6 @@ contract TreasureHuntCreator is Ownable {
     }
 
     // -------------------- HELPERS --------------------
-
-    function _toHexString(bytes32 data) internal pure returns (string memory) {
-        bytes memory alphabet = "0123456789abcdef";
-
-        bytes memory str = new bytes(64);
-        for (uint256 i = 0; i < 32; i++) {
-            uint8 b = uint8(data[i]);
-            str[i * 2] = alphabet[b >> 4];
-            str[1 + i * 2] = alphabet[b & 0x0f];
-        }
-        return string(str);
-    }
-
-    function _toDecString(uint256 value) internal pure returns (string memory) {
-        if (value == 0) {
-            return "0";
-        }
-        uint256 temp = value;
-        uint256 digits;
-        while (temp != 0) {
-            digits++;
-            temp /= 10;
-        }
-        bytes memory buffer = new bytes(digits);
-        while (value != 0) {
-            digits -= 1;
-
-            // casting to uint8 is safe because (value % 10) is always 0–9,
-            // so 48 + (value % 10) is always 48–57 (ASCII digits), which fits in uint8.
-            // forge-lint: disable-next-line(unsafe-typecast)
-            buffer[digits] = bytes1(uint8(48 + uint256(value % 10)));
-
-            value /= 10;
-        }
-        return string(buffer);
-    }
 
     function _onlyRegistered() internal view {
         require(registeredCreator[msg.sender], "Not a registered creator");
