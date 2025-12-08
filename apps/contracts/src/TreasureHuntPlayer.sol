@@ -11,7 +11,7 @@ import {Clue, Hunt, PlayerStats} from "./TreasureHuntTypes.sol";
 /**
  * @title TreasureHuntPlayer
  * @notice A CELO-native treasure hunt game where players solve location-based puzzles for cUSD rewards
- * @dev Implements a secure multi-clue hunt system with QR code verification and leaderboard tracking
+ * @dev Implements a secure multi-clue hunt system with manual answer verification and leaderboard tracking
  *
  * CELO-SPECIFIC FEATURES:
  * - Uses cUSD as the native reward token (CELO's stable currency)
@@ -163,7 +163,7 @@ contract TreasureHuntPlayer is ReentrancyGuard, Pausable, Ownable {
      * @dev Clues must be added before funding the hunt
      * @param _huntId The hunt to add the clue to
      * @param _clueText The riddle or instruction text
-     * @param _answer The correct answer (will be hashed for QR validation)
+     * @param _answer The correct answer (will be hashed for verification)
      * @param _reward cUSD reward amount in wei
      * @param _location Optional location hint
      */
@@ -392,9 +392,9 @@ contract TreasureHuntPlayer is ReentrancyGuard, Pausable, Ownable {
 
     /**
      * @notice Submit an answer to the current clue
-     * @dev This is called when player scans QR code with format: celo-hunt://clue/{clueId}/verify/{token}
+     * @dev Players submit answers manually, which are hashed and compared against the stored answer hash
      * @param _huntId The hunt being played
-     * @param _answer The answer string (extracted from QR code)
+     * @param _answer The answer string submitted by the player
      */
     function submitAnswer(uint256 _huntId, string memory _answer)
         external

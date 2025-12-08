@@ -35,7 +35,7 @@ export default function CreateHuntPage() {
     useRegisterCreator();
   const { createHunt, isPending: isCreating, isConfirmed: huntCreated, hash: createHash } =
     useCreateHunt();
-  const { addClue, isPending: isAddingClue, isConfirmed: clueAdded } = useAddClue();
+  const { addClue, isPending: isAddingClue, isConfirmed: clueAdded, error: addClueError } = useAddClue();
   const { fundHunt, isPending: isFunding, isConfirmed: huntFunded, error: fundErrorHook } = useFundHunt();
   const { publishHunt, isPending: isPublishing, isConfirmed: huntPublished, error: publishError } = usePublishHunt();
   const { approveCUSD, isPending: isApproving, isConfirmed: cUSDApproved, error: approveErrorHook } = useApproveCUSD();
@@ -68,6 +68,7 @@ export default function CreateHuntPage() {
   // Error state for displaying transaction errors
   const [fundError, setFundError] = useState<string | null>(null);
   const [approveError, setApproveError] = useState<string | null>(null);
+  const [addClueErrorState, setAddClueErrorState] = useState<string | null>(null);
 
   // Auto-advance steps
   if (!isCreator && step === "register" && isRegistered) {
@@ -105,7 +106,7 @@ export default function CreateHuntPage() {
     // or implement event listening
   };
 
-  const handleAddClue = () => {
+  const handleAddClue = async () => {
     const validation = validateReward(currentClue.reward);
     if (!validation.valid) {
       alert(validation.error);
@@ -129,17 +130,42 @@ export default function CreateHuntPage() {
       return;
     }
 
-    addClue(huntId, currentClue.clueText, currentClue.answer, currentClue.reward, currentClue.location);
-    
-    // Add to local state
-    setClues([...clues, { ...currentClue }]);
-    setCurrentClue({
-      clueText: "",
-      answer: "",
-      reward: "0.5",
-      location: "",
-    });
+    // Clear previous errors
+    setAddClueErrorState(null);
+
+    try {
+      await addClue(huntId, currentClue.clueText, currentClue.answer, currentClue.reward, currentClue.location);
+      
+      // Only add to local state if transaction was initiated successfully
+      // Don't clear form yet - wait for confirmation
+    } catch (err: any) {
+      const errorMessage = err.message || err.toString() || "Failed to add clue";
+      setAddClueErrorState(errorMessage);
+      console.error("Error adding clue:", err);
+    }
   };
+
+  // Clear form when clue is successfully added
+  useEffect(() => {
+    if (clueAdded) {
+      setClues([...clues, { ...currentClue }]);
+      setCurrentClue({
+        clueText: "",
+        answer: "",
+        reward: "0.5",
+        location: "",
+      });
+      setAddClueErrorState(null);
+    }
+  }, [clueAdded]);
+
+  // Display errors from the hook
+  useEffect(() => {
+    if (addClueError) {
+      const errorMessage = addClueError.message || addClueError.toString() || "Failed to add clue";
+      setAddClueErrorState(errorMessage);
+    }
+  }, [addClueError]);
 
   const handleFundHunt = async () => {
     if (huntId === null) {
@@ -396,6 +422,11 @@ export default function CreateHuntPage() {
                 </Button>
               )}
             </div>
+            {addClueErrorState && (
+              <div className="mt-4 p-4 border-4 border-celo-orange bg-celo-orange/20">
+                <p className="text-body-bold text-celo-purple">Error: {addClueErrorState}</p>
+              </div>
+            )}
 
             {clues.length > 0 && (
               <div className="mt-6 space-y-2">

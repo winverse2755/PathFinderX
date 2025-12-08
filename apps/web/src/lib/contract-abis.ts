@@ -36,40 +36,6 @@ export const TREASURE_HUNT_CREATOR_ABI = [
   },
   {
     "type": "function",
-    "name": "addClueWithGeneratedQr",
-    "inputs": [
-      {
-        "name": "_huntId",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "_clueText",
-        "type": "string",
-        "internalType": "string"
-      },
-      {
-        "name": "_reward",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "_location",
-        "type": "string",
-        "internalType": "string"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "string",
-        "internalType": "string"
-      }
-    ],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
     "name": "createHunt",
     "inputs": [
       {
@@ -210,7 +176,7 @@ export const TREASURE_HUNT_CREATOR_ABI = [
   },
   {
     "type": "event",
-    "name": "ClueAddedWithQR",
+    "name": "ClueAdded",
     "inputs": [
       {
         "name": "huntId",
@@ -223,12 +189,6 @@ export const TREASURE_HUNT_CREATOR_ABI = [
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
-      },
-      {
-        "name": "qr",
-        "type": "string",
-        "indexed": false,
-        "internalType": "string"
       }
     ],
     "anonymous": false
@@ -350,6 +310,39 @@ export const TREASURE_HUNT_CREATOR_ABI = [
         "internalType": "address"
       }
     ]
+  },
+  {
+    "type": "function",
+    "name": "addClue",
+    "inputs": [
+      {
+        "name": "_huntId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "_clueText",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "_answer",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "_reward",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "_location",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
   }
 ] as const;
 

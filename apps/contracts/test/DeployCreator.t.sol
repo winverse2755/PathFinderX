@@ -82,8 +82,7 @@ contract DeployCreatorTest is Test {
 
         // Add a clue
         vm.prank(creatorAddr);
-        string memory qr = creator.addClueWithGeneratedQr(huntId, "Test clue", 0.1 ether, "Test location");
-        assertTrue(bytes(qr).length > 0, "QR code should be generated");
+        creator.addClue(huntId, "Test clue", "answer", 0.1 ether, "Test location");
 
         // Fund the hunt
         vm.prank(creatorAddr);

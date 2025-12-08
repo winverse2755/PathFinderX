@@ -27,14 +27,21 @@ export function useTreasureHuntContract() {
   });
 
   // Helper to ensure we're on Celo mainnet before writing
-  const writeContractOnCelo = (params: any) => {
+  const writeContractOnCelo = async (params: any) => {
     // If not on Celo mainnet, switch first
     if (chainId !== CELO_MAINNET_CHAIN_ID) {
-      // Trigger chain switch - this will prompt the user
-      switchChain({ chainId: CELO_MAINNET_CHAIN_ID });
-      throw new Error("Please switch to Celo Mainnet to continue. The wallet will prompt you to switch.");
+      try {
+        // Trigger chain switch - this will prompt the user
+        await switchChain({ chainId: CELO_MAINNET_CHAIN_ID });
+        // Wait a bit for chain switch to complete
+        await new Promise(resolve => setTimeout(resolve, 500));
+      } catch (err: any) {
+        throw new Error("Please switch to Celo Mainnet to continue. The wallet will prompt you to switch.");
+      }
     }
-    // Write contract - chain is determined by the connected chain
+    // Write contract - this is synchronous and will trigger the wallet prompt
+    // The transaction hash will be available via the hook's hash state
+    // Errors will be available via the hook's error state
     return writeContract(params);
   };
 
@@ -115,20 +122,28 @@ export function useAddClue() {
   const { writeContract, hash, isPending, isConfirming, isConfirmed, error } =
     useTreasureHuntContract();
 
-  const addClue = (
+  const addClue = async (
     huntId: number,
     clueText: string,
     answer: string,
     reward: string,
     location: string
   ) => {
-    const rewardAmount = parseCUSD(reward);
-    writeContract({
-      address: TREASURE_HUNT_CREATOR_ADDRESS,
-      abi: TREASURE_HUNT_CREATOR_ABI,
-      functionName: "addClue",
-      args: [BigInt(huntId), clueText, answer, rewardAmount, location],
-    });
+    try {
+      const rewardAmount = parseCUSD(reward);
+      // writeContractOnCelo handles chain switching and calls writeContract
+      // writeContract is synchronous and will trigger wallet prompt
+      // Errors will be available via the hook's error state
+      await writeContract({
+        address: TREASURE_HUNT_CREATOR_ADDRESS,
+        abi: TREASURE_HUNT_CREATOR_ABI,
+        functionName: "addClue",
+        args: [BigInt(huntId), clueText, answer, rewardAmount, location],
+      });
+    } catch (err: any) {
+      // Re-throw to let caller handle it
+      throw err;
+    }
   };
 
   return {

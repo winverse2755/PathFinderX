@@ -29,10 +29,9 @@ contract TreasureHuntTest is Test {
         vm.prank(creatorAddr);
         uint256 huntId = creator.createHunt("Test Hunt", "A short description");
 
-        // add a clue and receive a QR string
+        // add a clue with answer
         vm.prank(creatorAddr);
-        string memory qr = creator.addClueWithGeneratedQr(huntId, "Find the statue", 0.1 ether, "Park");
-        assert(bytes(qr).length > 0); // QR string should be returned
+        creator.addClue(huntId, "Find the statue", "statue", 0.1 ether, "Park");
 
         // mint tokens to the creator and approve Creator contract
         token.mint(creatorAddr, 1 ether);
@@ -62,10 +61,9 @@ contract TreasureHuntTest is Test {
         vm.prank(creatorAddr);
         uint256 huntId = creator.createHunt("Park Hunt", "Find the park statue");
 
-        // Add a clue and get QR (token embedded)
+        // Add a clue with answer
         vm.prank(creatorAddr);
-        string memory qr = creator.addClueWithGeneratedQr(huntId, "Find the statue", 0.1 ether, "Park");
-        assert(bytes(qr).length > 0);
+        creator.addClue(huntId, "Find the statue", "statue", 0.1 ether, "Park");
 
         // Mint and approve funds to creator, then fund via creator contract
         token.mint(creatorAddr, 1 ether);
@@ -79,14 +77,10 @@ contract TreasureHuntTest is Test {
         vm.prank(playerAddr);
         player.startHunt(huntId);
 
-        // Extract token from QR string (token after last "/token/")
-        string memory tokenStr = _extractTokenFromQr(qr);
-        assertTrue(bytes(tokenStr).length > 0);
-
         // Advance time to satisfy rate limiter then submit answer
         vm.warp(block.timestamp + 3);
         vm.prank(playerAddr);
-        player.submitAnswer(huntId, tokenStr);
+        player.submitAnswer(huntId, "statue");
 
         // Check player's balance received reward
         uint256 bal = token.balanceOf(playerAddr);
@@ -102,32 +96,4 @@ contract TreasureHuntTest is Test {
         assertEq(players[0], playerAddr);
     }
 
-    // ----------------- helpers -----------------
-    function _extractTokenFromQr(string memory qr) internal pure returns (string memory) {
-        bytes memory b = bytes(qr);
-        bytes memory marker = bytes("/token/");
-        uint256 markerLen = marker.length;
-        if (b.length < markerLen) return "";
-
-        for (uint256 i = 0; i + markerLen <= b.length; i++) {
-            bool isMatch = true;
-            for (uint256 j = 0; j < markerLen; j++) {
-                if (b[i + j] != marker[j]) {
-                    isMatch = false;
-                    break;
-                }
-            }
-            if (isMatch) {
-                // token starts at i + markerLen
-                uint256 start = i + markerLen;
-                uint256 len = b.length - start;
-                bytes memory out = new bytes(len);
-                for (uint256 k = 0; k < len; k++) {
-                    out[k] = b[start + k];
-                }
-                return string(out);
-            }
-        }
-        return "";
-    }
 }
