@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Menu, ExternalLink } from "lucide-react"
+import { Menu } from "lucide-react"
 import Image from "next/image"
 
 import { Button } from "@/components/ui/button"
@@ -24,28 +24,28 @@ export function Navbar() {
   const pathname = usePathname()
   
   return (
-    <header className="sticky top-0 z-50 w-full border-b-4 border-celo-purple bg-celo-yellow shadow-lg backdrop-blur-sm">
+    <header className="sticky top-0 z-50 w-full border-b border-game-primary/30 bg-game-surface/95 backdrop-blur-md shadow-card">
       <div className="container flex h-20 max-w-screen-2xl items-center justify-between px-6">
         <div className="flex items-center gap-4">
           {/* Mobile menu button */}
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="md:hidden border-2 border-celo-purple bg-transparent hover:bg-celo-purple hover:text-celo-yellow transition-premium">
+              <Button variant="ghost" size="icon" className="md:hidden">
                 <Menu className="h-6 w-6" />
                 <span className="sr-only">Toggle menu</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-80 bg-celo-tan-light border-r-4 border-celo-purple">
+            <SheetContent side="left" className="w-80 bg-game-surface border-r border-game-primary/30">
               <div className="flex items-center gap-3 mb-8 animate-fade-in">
                 <Image
                   src="/logo.jpg"
                   alt="PathFinderX Logo"
                   width={48}
                   height={48}
-                  className="flex-shrink-0 w-12 h-12"
+                  className="flex-shrink-0 w-12 h-12 rounded-lg"
                   priority
                 />
-                <span className="text-display text-3xl font-display font-light italic text-celo-purple">
+                <span className="font-game text-2xl font-bold tracking-wider gradient-text">
                   PathFinderX
                 </span>
               </div>
@@ -54,21 +54,21 @@ export function Navbar() {
                   <Link
                     key={link.href}
                     href={link.href}
-                    className={`block px-4 py-3 border-2 text-body-bold text-base transition-premium hover-lift animate-slide-in ${
+                    className={`block px-4 py-3 font-game text-sm font-medium tracking-wide rounded-md transition-all duration-300 animate-slide-in ${
                       link.isSearch
                         ? pathname === link.href
-                          ? "bg-celo-pink-accent border-celo-purple text-celo-purple"
-                          : "bg-celo-pink-accent/20 border-celo-pink-accent text-celo-purple hover:bg-celo-pink-accent hover:border-celo-purple"
+                          ? "bg-game-accent text-game-bg shadow-glow-accent"
+                          : "bg-game-accent/20 text-game-accent hover:bg-game-accent hover:text-game-bg"
                         : pathname === link.href
-                        ? "bg-celo-purple text-celo-yellow border-celo-purple"
-                        : "bg-transparent text-celo-purple border-celo-purple hover:bg-celo-purple hover:text-celo-yellow"
+                        ? "bg-game-primary text-white shadow-glow-primary"
+                        : "bg-transparent text-game-text-muted hover:bg-game-primary/20 hover:text-white"
                     }`}
                     style={{ animationDelay: `${index * 0.1}s` }}
                   >
                     {link.name}
                   </Link>
                 ))}
-                <div className="mt-6 pt-6 border-t-2 border-celo-purple">
+                <div className="mt-6 pt-6 border-t border-game-primary/30">
                   <div className="md:hidden">
                     <WalletConnectButton mobileView />
                   </div>
@@ -81,16 +81,16 @@ export function Navbar() {
           </Sheet>
 
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 sm:gap-3 hover:opacity-90 transition-premium group">
+          <Link href="/" className="flex items-center gap-2 sm:gap-3 group">
             <Image
               src="/logo.jpg"
               alt="PathFinderX Logo"
               width={40}
               height={40}
-              className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 group-hover:scale-105 transition-transform"
+              className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-lg group-hover:shadow-glow-primary transition-all duration-300"
               priority
             />
-            <span className="text-display text-2xl sm:text-3xl font-display font-light italic text-celo-purple group-hover:scale-105 transition-transform">
+            <span className="font-game text-xl sm:text-2xl font-bold tracking-wider gradient-text group-hover:opacity-80 transition-opacity">
               PathFinderX
             </span>
           </Link>
@@ -102,14 +102,14 @@ export function Navbar() {
             <Link
               key={link.href}
               href={link.href}
-              className={`px-4 py-2 border-2 text-body-bold text-sm transition-premium hover-lift ${
+              className={`px-4 py-2 font-game text-sm font-medium tracking-wide rounded-md transition-all duration-300 ${
                 link.isSearch
                   ? pathname === link.href
-                    ? "bg-celo-pink-accent border-celo-purple text-celo-purple shadow-md"
-                    : "bg-celo-pink-accent/20 border-celo-pink-accent text-celo-purple hover:bg-celo-pink-accent hover:border-celo-purple"
+                    ? "bg-game-accent text-game-bg shadow-glow-accent"
+                    : "bg-game-accent/20 text-game-accent hover:bg-game-accent hover:text-game-bg"
                   : pathname === link.href
-                  ? "bg-celo-purple text-celo-yellow border-celo-purple shadow-md"
-                  : "bg-transparent text-celo-purple border-celo-purple hover:bg-celo-purple hover:text-celo-yellow"
+                  ? "bg-game-primary text-white shadow-glow-primary"
+                  : "bg-transparent text-game-text-muted hover:bg-game-primary/20 hover:text-white"
               }`}
             >
               {link.name}

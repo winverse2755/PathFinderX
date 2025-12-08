@@ -1,11 +1,6 @@
 import { createEnv } from "@t3-oss/env-nextjs";
 import { z } from "zod";
 
-
-console.log("#########################");
-console.log(process.env.NEXT_PUBLIC_URL);
-console.log("#########################");
-
 // https://env.t3.gg/docs/nextjs
 export const env = createEnv({
   server: {

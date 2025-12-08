@@ -1,22 +1,15 @@
 import type { Metadata } from 'next';
-import { Inter, Playfair_Display } from 'next/font/google';
+import { Orbitron } from 'next/font/google';
 import './globals.css';
 
 import { Navbar } from '@/components/navbar';
 import { ChainStatusBanner } from '@/components/chain-status-banner';
 import Providers from "@/components/providers"
 
-const inter = Inter({ 
+const orbitron = Orbitron({ 
   subsets: ['latin'],
-  variable: '--font-body',
-  weight: ['400', '500', '600', '700', '800'],
-});
-
-const playfair = Playfair_Display({
-  subsets: ['latin'],
-  variable: '--font-display',
-  weight: ['400', '700'],
-  style: ['normal', 'italic'],
+  variable: '--font-orbitron',
+  weight: ['400', '500', '600', '700', '800', '900'],
 });
 
 const appUrl = process.env.NEXT_PUBLIC_URL || "http://localhost:3000";
@@ -32,17 +25,17 @@ const frame = {
       name: "pathfinderx",
       url: appUrl,
       splashImageUrl: `${appUrl}/icon.png`,
-      splashBackgroundColor: "#FCFF52",
+      splashBackgroundColor: "#0D0D1A",
     },
   },
 };
 
 export const metadata: Metadata = {
   title: 'PathFinderX',
-  description: 'Gamified treasure hunt on Celo',
+  description: 'Blockchain treasure hunt game on Celo',
   openGraph: {
     title: 'PathFinderX',
-    description: 'Gamified treasure hunt on Celo',
+    description: 'Blockchain treasure hunt game on Celo',
     images: [`${appUrl}/opengraph-image.png`],
   },
   other: {
@@ -56,10 +49,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${playfair.variable}`}>
-      <body className="font-body">
-        {/* Navbar is included on all pages */}
-        <div className="relative flex min-h-screen flex-col bg-celo-tan-light">
+    <html lang="en" className={orbitron.variable}>
+      <body className="font-game bg-game-bg text-white">
+        <div className="relative flex min-h-screen flex-col">
           <Providers>
             <Navbar />
             <ChainStatusBanner />

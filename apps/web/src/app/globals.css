@@ -4,64 +4,89 @@
 
 @layer base {
   :root {
-    --border: #1A0329;
-    --input: #E6E3D5;
-    --ring: #FCFF52;
+    /* Blockchain Game Design System Colors */
+    --game-bg: #0D0D1A;
+    --game-surface: #1A1A2E;
+    --game-primary: #4B6AFF;
+    --game-secondary: #FFB64B;
+    --game-accent: #37E2D5;
+    --game-text: #FFFFFF;
+    --game-text-muted: #AAAAAA;
+    --game-success: #4CAF50;
+    --game-warning: #FFC107;
+    --game-error: #FF3B3B;
+    
+    /* Token Rarity Colors */
+    --token-common: #C0C0C0;
+    --token-rare: #4B6AFF;
+    --token-epic: #9B59B6;
+    --token-legendary: #FFD700;
 
-    --background: #FBF6F1;
-    --foreground: #1A0329;
+    /* Spacing */
+    --spacing-xs: 4px;
+    --spacing-sm: 8px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    --spacing-xl: 32px;
+    --spacing-xxl: 48px;
 
-    --card: #FFFFFF;
-    --card-foreground: #1A0329;
+    /* Borders */
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 16px;
 
-    --popover: #FBF6F1;
-    --popover-foreground: #1A0329;
-
-    --primary: #FCFF52;
-    --primary-foreground: #1A0329;
-
-    --secondary: #4E632A;
-    --secondary-foreground: #FCFF52;
-
-    --muted: #E6E3D5;
-    --muted-foreground: #635949;
-
-    --accent: #F2A9E7;
-    --accent-foreground: #1A0329;
-
-    --destructive: #F29E5F;
-    --destructive-foreground: #1A0329;
-
-    --radius: 0;
+    /* Shadows */
+    --shadow-card: 0px 4px 16px rgba(0, 0, 0, 0.5);
+    --shadow-button: 0px 2px 8px rgba(0, 0, 0, 0.3);
+    --shadow-glow-primary: 0 0 20px rgba(75, 106, 255, 0.4);
+    --shadow-glow-accent: 0 0 20px rgba(55, 226, 213, 0.4);
+    --shadow-glow-secondary: 0 0 20px rgba(255, 182, 75, 0.4);
   }
 }
 
 @layer base {
   * {
-    @apply border-border;
+    @apply border-game-primary/30;
   }
   body {
-    @apply bg-background text-foreground font-body;
+    @apply bg-game-bg text-white font-game;
     font-weight: 400;
   }
   
   h1, h2, h3, h4, h5, h6 {
-    @apply font-display;
-    font-weight: 400;
-    letter-spacing: -0.02em;
+    @apply font-game font-bold tracking-wider;
   }
 }
 
 @layer utilities {
-  .text-display {
-    @apply font-display;
-    font-weight: 400;
-    letter-spacing: -0.02em;
+  /* Typography utilities */
+  .text-heading-1 {
+    @apply font-game text-5xl font-bold leading-tight tracking-wider;
   }
   
-  .text-body-bold {
-    @apply font-body;
-    font-weight: 800;
+  .text-heading-2 {
+    @apply font-game text-4xl font-semibold leading-snug tracking-wide;
+  }
+  
+  .text-body {
+    @apply font-game text-base font-normal leading-relaxed;
+  }
+  
+  .text-small {
+    @apply font-game text-xs font-normal leading-tight;
+  }
+
+  /* Glow effects */
+  .glow-primary {
+    box-shadow: var(--shadow-glow-primary);
+  }
+  
+  .glow-accent {
+    box-shadow: var(--shadow-glow-accent);
+  }
+  
+  .glow-secondary {
+    box-shadow: var(--shadow-glow-secondary);
   }
 
   /* Premium animations */
@@ -107,6 +132,33 @@
     }
   }
 
+  @keyframes pulse-glow {
+    0%, 100% {
+      box-shadow: 0 0 20px rgba(75, 106, 255, 0.4);
+    }
+    50% {
+      box-shadow: 0 0 40px rgba(75, 106, 255, 0.6);
+    }
+  }
+
+  @keyframes border-glow {
+    0%, 100% {
+      border-color: rgba(75, 106, 255, 0.5);
+    }
+    50% {
+      border-color: rgba(75, 106, 255, 1);
+    }
+  }
+
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+
   .animate-fade-in {
     animation: fadeIn 0.4s ease-out;
   }
@@ -124,14 +176,26 @@
     background: linear-gradient(
       to right,
       transparent 0%,
-      rgba(255, 255, 255, 0.3) 50%,
+      rgba(75, 106, 255, 0.2) 50%,
       transparent 100%
     );
     background-size: 1000px 100%;
   }
 
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  .animate-border-glow {
+    animation: border-glow 2s ease-in-out infinite;
+  }
+
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
   /* Smooth transitions */
-  .transition-premium {
+  .transition-game {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
@@ -142,21 +206,85 @@
 
   .hover-lift:hover {
     transform: translateY(-4px);
-    box-shadow: 0 12px 24px rgba(26, 3, 41, 0.15);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4), var(--shadow-glow-primary);
   }
 
-  /* Glass morphism effect */
+  .hover-glow:hover {
+    box-shadow: var(--shadow-glow-primary);
+  }
+
+  /* Glass morphism effect for dark theme */
   .glass {
-    background: rgba(255, 255, 255, 0.8);
+    background: rgba(26, 26, 46, 0.8);
     backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(75, 106, 255, 0.2);
   }
 
   /* Gradient text */
   .gradient-text {
-    background: linear-gradient(135deg, #FCFF52 0%, #4E632A 100%);
+    background: linear-gradient(135deg, #4B6AFF 0%, #37E2D5 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+  }
+
+  .gradient-text-gold {
+    background: linear-gradient(135deg, #FFB64B 0%, #FFD700 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Game card styles */
+  .game-card {
+    @apply bg-game-surface border border-game-primary/30 rounded-lg;
+    box-shadow: var(--shadow-card);
+  }
+
+  .game-card:hover {
+    @apply border-game-primary/60;
+    box-shadow: var(--shadow-card), var(--shadow-glow-primary);
+  }
+
+  /* Token badge styles */
+  .token-common {
+    @apply bg-token-common/20 text-token-common border border-token-common/50 rounded;
+  }
+  
+  .token-rare {
+    @apply bg-token-rare/20 text-token-rare border border-token-rare/50 rounded;
+  }
+  
+  .token-epic {
+    @apply bg-token-epic/20 text-token-epic border border-token-epic/50 rounded;
+  }
+  
+  .token-legendary {
+    @apply bg-token-legendary/20 text-token-legendary border border-token-legendary/50 rounded;
+  }
+
+  /* Status indicators */
+  .status-online {
+    @apply bg-game-success;
+  }
+  
+  .status-offline {
+    @apply bg-game-error;
+  }
+  
+  .status-pending {
+    @apply bg-game-warning;
+  }
+
+  /* Background patterns */
+  .bg-grid-pattern {
+    background-image: 
+      linear-gradient(rgba(75, 106, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(75, 106, 255, 0.03) 1px, transparent 1px);
+    background-size: 50px 50px;
+  }
+
+  .bg-gradient-radial {
+    background: radial-gradient(ellipse at center, rgba(75, 106, 255, 0.1) 0%, transparent 70%);
   }
 }
