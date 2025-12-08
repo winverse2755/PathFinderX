@@ -276,7 +276,7 @@ export default function CreateHuntPage() {
           <CardContent>
             {isCreator ? (
               <div>
-                <p className="text-green-600 mb-4">✓ You're already registered!</p>
+                <p className="text-green-600 mb-4">✓ You&apos;re already registered!</p>
                 <Button onClick={() => setStep("create")}>Continue</Button>
               </div>
             ) : (
@@ -352,7 +352,7 @@ export default function CreateHuntPage() {
           <CardHeader>
             <CardTitle>Add Clues</CardTitle>
             <CardDescription>
-              Add clues one by one. You've added {clues.length} clue(s).
+              Add clues one by one. You&apos;ve added {clues.length} clue(s).
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -496,7 +496,7 @@ export default function CreateHuntPage() {
                   <div className="mt-4 p-4 border-4 border-celo-orange bg-celo-orange/20">
                     <p className="text-body-bold text-celo-purple">Error: {fundError}</p>
                     <p className="text-sm text-celo-brown mt-2">
-                      Make sure you have approved enough cUSD and that the funding amount matches the contract's total reward.
+                      Make sure you have approved enough cUSD and that the funding amount matches the contract&apos;s total reward.
                     </p>
                   </div>
                 )}

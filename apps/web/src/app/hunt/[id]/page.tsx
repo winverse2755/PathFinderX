@@ -136,24 +136,24 @@ export default function HuntPage() {
       const checkAndRefetch = async () => {
         // First refetch to get updated progress
         await refetchProgress();
-        
+
         // Wait a bit for state to propagate
         await new Promise(resolve => setTimeout(resolve, 2000));
-        
+
         // Refetch again to ensure we have latest state
         await refetchProgress();
-        
+
         // Only refetch clue if progress shows hunt has started
         // This prevents calling viewCurrentClue before playerStartTime is set
         await new Promise(resolve => setTimeout(resolve, 1000));
         await refetchProgress();
-        
+
         // Final refetch of clue after ensuring state is updated
         setTimeout(() => {
           refetchClue();
         }, 1000);
       };
-      
+
       checkAndRefetch();
     }
   }, [isStartConfirmed, refetchProgress, refetchClue]);
@@ -178,9 +178,9 @@ export default function HuntPage() {
 
   return (
     <div className="container mx-auto px-6 py-12 max-w-4xl bg-celo-tan-light min-h-screen animate-fade-in">
-      <Button 
-        variant="ghost" 
-        onClick={() => router.push("/")} 
+      <Button
+        variant="ghost"
+        onClick={() => router.push("/")}
         className="mb-6 border-2 transition-premium hover-lift"
       >
         ← Back
@@ -251,9 +251,9 @@ export default function HuntPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button 
-              onClick={() => router.push("/")} 
-              className="w-full border-4 border-celo-purple bg-celo-yellow text-celo-purple hover:bg-celo-purple hover:text-celo-yellow transition-premium hover-lift" 
+            <Button
+              onClick={() => router.push("/")}
+              className="w-full border-4 border-celo-purple bg-celo-yellow text-celo-purple hover:bg-celo-purple hover:text-celo-yellow transition-premium hover-lift"
               size="lg"
             >
               Browse More Hunts
@@ -263,7 +263,7 @@ export default function HuntPage() {
       ) : !hasStarted ? (
         <Card className="animate-fade-in">
           <CardContent className="pt-6">
-            <p className="text-center text-body-bold text-celo-purple text-xl mb-4">Click "Start Hunt" to begin!</p>
+            <p className="text-center text-body-bold text-celo-purple text-xl mb-4">Click &quot;Start Hunt&quot; to begin!</p>
           </CardContent>
         </Card>
       ) : clue ? (
@@ -290,11 +290,10 @@ export default function HuntPage() {
 
             {submissionStatus.type && (
               <div
-                className={`p-4 border-4 animate-fade-in transition-premium ${
-                  submissionStatus.type === "success"
+                className={`p-4 border-4 animate-fade-in transition-premium ${submissionStatus.type === "success"
                     ? "border-celo-green bg-celo-green text-celo-yellow"
                     : "border-celo-orange bg-celo-orange text-celo-purple"
-                }`}
+                  }`}
               >
                 <p className="text-body-bold text-lg">{submissionStatus.message}</p>
               </div>

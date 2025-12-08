@@ -279,7 +279,7 @@ function PlayerProgressDisplay({ huntId }: { huntId: number }) {
   const { hunt } = useSelectHunt(huntId);
 
   if (!progress || !progress.hasStarted) {
-    return <p className="text-gray-500">You haven't started this hunt yet.</p>;
+    return <p className="text-gray-500">You haven&apos;t started this hunt yet.</p>;
   }
 
   const isCompleted = progress.hasCompleted;
