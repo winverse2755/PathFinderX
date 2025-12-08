@@ -16,6 +16,7 @@ import {
   useCUSDBalance,
   useCUSDAllowance,
   useApproveCUSD,
+  useFetchQRCodes,
 } from "@/hooks/use-treasure-hunt";
 import { formatCUSD, parseCUSD, validateReward } from "@/lib/treasure-hunt-utils";
 import { TREASURE_HUNT_CREATOR_ADDRESS, CUSD_ADDRESS } from "@/lib/contract-abis";
@@ -58,6 +59,7 @@ export default function CreateHuntPage() {
   const [qrCodes, setQrCodes] = useState<string[]>([]);
 
   const { hunt } = useSelectHunt(huntId);
+  const { qrStrings, isLoading: isLoadingQRs, error: qrError, fetchQRCodes } = useFetchQRCodes(huntId);
   // Use the contract's totalReward instead of calculating locally
   const contractTotalReward = hunt?.totalReward ?? BigInt(0);
   const localTotalRewards = clues.reduce(
@@ -218,11 +220,33 @@ export default function CreateHuntPage() {
   const generateQRCodes = async () => {
     if (huntId === null) return;
 
-    // Note: The contract generates QR codes internally via addClueWithGeneratedQr
-    // We would need to listen to ClueAddedWithQR events to get the QR strings
-    // For now, we'll show a message that QR codes are generated on-chain
-    alert("QR codes are generated automatically when you add clues. Check the transaction events to retrieve them.");
+    // Fetch QR strings from events
+    await fetchQRCodes();
+
+    // Wait a bit for state to update
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // Check if we have QR strings (need to access from the hook's state)
+    // Since we can't directly access qrStrings here, we'll generate images after fetch
   };
+
+  // Generate QR code images when qrStrings are available
+  useEffect(() => {
+    if (qrStrings.length > 0 && qrCodes.length === 0) {
+      const generateImages = async () => {
+        try {
+          const qrImages = await Promise.all(
+            qrStrings.map((qrString) => QRCode.toDataURL(qrString, { width: 300, margin: 2 }))
+          );
+          setQrCodes(qrImages);
+        } catch (err: any) {
+          console.error("Error generating QR code images:", err);
+          alert("Failed to generate QR code images: " + (err.message || "Unknown error"));
+        }
+      };
+      generateImages();
+    }
+  }, [qrStrings, qrCodes.length]);
 
   if (!isConnected) {
     return (
@@ -522,22 +546,46 @@ export default function CreateHuntPage() {
           </CardHeader>
           <CardContent>
             {qrCodes.length === 0 ? (
-              <Button onClick={generateQRCodes}>Generate QR Codes</Button>
+              <div className="space-y-4">
+                <Button onClick={generateQRCodes} disabled={isLoadingQRs || huntId === null}>
+                  {isLoadingQRs ? "Loading QR Codes..." : "Generate QR Codes"}
+                </Button>
+                {qrError && (
+                  <p className="text-red-600 text-sm">
+                    Error: {qrError.message || "Failed to fetch QR codes"}
+                  </p>
+                )}
+                {qrStrings.length > 0 && qrCodes.length === 0 && (
+                  <p className="text-yellow-600 text-sm">
+                    Found {qrStrings.length} QR code(s), generating images...
+                  </p>
+                )}
+              </div>
             ) : (
-              <div className="grid grid-cols-2 gap-4">
-                {qrCodes.map((qr, idx) => (
-                  <div key={idx} className="text-center">
-                    <p className="text-sm font-medium mb-2">Clue {idx + 1}</p>
-                    <img src={qr} alt={`QR Code ${idx + 1}`} className="mx-auto" />
-                    <a
-                      href={qr}
-                      download={`hunt-${huntId}-clue-${idx + 1}.png`}
-                      className="block mt-2 text-blue-600 text-sm"
-                    >
-                      Download
-                    </a>
-                  </div>
-                ))}
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {qrCodes.map((qr, idx) => (
+                    <div key={idx} className="text-center border-2 border-celo-purple p-4 rounded">
+                      <p className="text-body-bold text-celo-purple mb-2">Clue {idx + 1}</p>
+                      <img src={qr} alt={`QR Code ${idx + 1}`} className="mx-auto border-2 border-celo-yellow" />
+                      <div className="mt-3 space-y-2">
+                        <a
+                          href={qr}
+                          download={`hunt-${huntId}-clue-${idx + 1}.png`}
+                          className="block"
+                        >
+                          <Button variant="outline" className="w-full border-2">
+                            Download QR Code
+                          </Button>
+                        </a>
+                        <p className="text-xs text-celo-brown break-all">{qrStrings[idx]}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <Button onClick={generateQRCodes} variant="outline" className="w-full">
+                  Refresh QR Codes
+                </Button>
               </div>
             )}
             <div className="mt-6">

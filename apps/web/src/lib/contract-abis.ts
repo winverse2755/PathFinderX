@@ -1,8 +1,8 @@
 import { Address } from 'viem';
 
 // Contract addresses (Celo Mainnet)
-export const TREASURE_HUNT_CREATOR_ADDRESS: Address = '0x350cb954d3d92120e050ba24306932a35dde60ff';
-export const TREASURE_HUNT_PLAYER_ADDRESS: Address = '0x72d955c58c5580e99c9d23ce2bd1fd73a58419c2';
+export const TREASURE_HUNT_CREATOR_ADDRESS: Address = '0x2219CaA3833B7E6f24c74fD59Fb8261b78113214';
+export const TREASURE_HUNT_PLAYER_ADDRESS: Address = '0xcF16785083Dd67a16DB0Fc4eECfB2c349aD0E269';
 export const CUSD_ADDRESS: Address = '0x765DE816845861e75A25fCA122bb6898B8B1282a';
 
 // Celo Mainnet chain ID

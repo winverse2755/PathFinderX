@@ -1,6 +1,7 @@
 "use client";
 
-import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useChainId, useSwitchChain } from "wagmi";
+import { useState } from "react";
+import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useChainId, useSwitchChain, usePublicClient } from "wagmi";
 import { useAccount } from "wagmi";
 import { Address } from "viem";
 import {
@@ -290,17 +291,18 @@ export function useIsHuntCreator(huntId: number | null) {
 }
 
 export function useViewCurrentClue(huntId: number | null, enabled: boolean = true) {
-  const { data: clueData } = useReadContract({
+  const { address } = useAccount();
+  const { data: clueData, isLoading, error, refetch } = useReadContract({
     address: TREASURE_HUNT_PLAYER_ADDRESS,
     abi: TREASURE_HUNT_PLAYER_ABI,
     functionName: "viewCurrentClue",
     args: huntId !== null ? [BigInt(huntId)] : undefined,
     chainId: CELO_MAINNET_CHAIN_ID,
-    query: { enabled: huntId !== null && enabled },
+    query: { enabled: huntId !== null && enabled && !!address },
   });
 
   if (!clueData) {
-    return { clue: null };
+    return { clue: null, isLoading, error, refetch };
   }
 
   const [clueText, reward, clueIndex, location] = clueData as [
@@ -317,6 +319,9 @@ export function useViewCurrentClue(huntId: number | null, enabled: boolean = tru
       clueIndex: Number(clueIndex),
       location,
     },
+    isLoading,
+    error,
+    refetch,
   };
 }
 
@@ -346,7 +351,7 @@ export function useSubmitAnswer() {
 
 export function useGetDetailedProgress(huntId: number | null) {
   const { address } = useAccount();
-  const { data: progressData } = useReadContract({
+  const { data: progressData, refetch } = useReadContract({
     address: TREASURE_HUNT_PLAYER_ADDRESS,
     abi: TREASURE_HUNT_PLAYER_ABI,
     functionName: "getDetailedProgress",
@@ -356,7 +361,7 @@ export function useGetDetailedProgress(huntId: number | null) {
   });
 
   if (!progressData) {
-    return { progress: null };
+    return { progress: null, refetch };
   }
 
   const [currentClue, totalClues, hasStarted, hasCompleted, startTime] = progressData as [
@@ -375,6 +380,7 @@ export function useGetDetailedProgress(huntId: number | null) {
       hasCompleted,
       startTime: Number(startTime),
     },
+    refetch,
   };
 }
 
@@ -437,5 +443,63 @@ export function useApproveCUSD() {
     isConfirming,
     isConfirmed,
     error,
+  };
+}
+
+// Hook to fetch QR codes from ClueAddedWithQR events
+export function useFetchQRCodes(huntId: number | null) {
+  const publicClient = usePublicClient({ chainId: CELO_MAINNET_CHAIN_ID });
+  const [qrStrings, setQrStrings] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchQRCodes = async () => {
+    if (!huntId || !publicClient) return;
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // Fetch ClueAddedWithQR events for this hunt
+      const logs = await publicClient.getLogs({
+        address: TREASURE_HUNT_CREATOR_ADDRESS,
+        event: {
+          type: "event",
+          name: "ClueAddedWithQR",
+          inputs: [
+            { name: "huntId", type: "uint256", indexed: true },
+            { name: "clueIndex", type: "uint256", indexed: false },
+            { name: "qr", type: "string", indexed: false },
+          ],
+        } as const,
+        args: {
+          huntId: BigInt(huntId),
+        },
+        fromBlock: 0n, // Search from genesis
+      });
+
+      // Extract QR strings and sort by clueIndex
+      const qrData = logs
+        .map((log: any) => ({
+          clueIndex: Number(log.args.clueIndex),
+          qr: log.args.qr as string,
+        }))
+        .sort((a, b) => a.clueIndex - b.clueIndex)
+        .map((item) => item.qr);
+
+      setQrStrings(qrData);
+    } catch (err: any) {
+      setError(err);
+      console.error("Error fetching QR codes:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return {
+    qrStrings,
+    isLoading,
+    error,
+    fetchQRCodes,
   };
 }

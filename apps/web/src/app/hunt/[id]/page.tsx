@@ -17,10 +17,10 @@ export default function HuntPage() {
   const huntId = parseInt(params.id as string, 10);
   const { address, isConnected } = useAccount();
   const { hunt } = useSelectHunt(huntId);
-  const { progress } = useGetDetailedProgress(huntId);
+  const { progress, refetch: refetchProgress } = useGetDetailedProgress(huntId);
   const { isCreator } = useIsHuntCreator(huntId);
   const hasStarted = progress?.hasStarted ?? false;
-  const { clue } = useViewCurrentClue(huntId, hasStarted);
+  const { clue, isLoading: isLoadingClue, error: clueError, refetch: refetchClue } = useViewCurrentClue(huntId, hasStarted);
   const [showQRScanner, setShowQRScanner] = useState(false);
   const [manualAnswer, setManualAnswer] = useState("");
   const [showManualInput, setShowManualInput] = useState(false);
@@ -102,6 +102,11 @@ export default function HuntPage() {
         type: "success",
         message: "Answer submitted! Checking...",
       });
+      // Refetch progress data and clue after a short delay to ensure block is confirmed
+      setTimeout(() => {
+        refetchProgress();
+        refetchClue();
+      }, 1000);
       // Reset after a delay
       setTimeout(() => {
         setSubmissionStatus({ type: null, message: "" });
@@ -109,7 +114,7 @@ export default function HuntPage() {
         setShowManualInput(false);
       }, 3000);
     }
-  }, [isConfirmed]);
+  }, [isConfirmed, refetchProgress, refetchClue]);
 
   useEffect(() => {
     if (error) {
@@ -122,13 +127,28 @@ export default function HuntPage() {
   }, [error]);
 
   useEffect(() => {
+    if (clueError) {
+      const errorMessage = clueError.message || clueError.toString() || "Failed to load clue";
+      setSubmissionStatus({
+        type: "error",
+        message: errorMessage,
+      });
+    }
+  }, [clueError]);
+
+  useEffect(() => {
     if (isStartConfirmed) {
       setSubmissionStatus({
         type: "success",
         message: "Hunt started successfully!",
       });
+      // Refetch progress data and clue after a short delay to ensure block is confirmed
+      setTimeout(() => {
+        refetchProgress();
+        refetchClue();
+      }, 1000);
     }
-  }, [isStartConfirmed]);
+  }, [isStartConfirmed, refetchProgress, refetchClue]);
 
   if (!hunt) {
     return (
@@ -334,7 +354,24 @@ export default function HuntPage() {
       ) : (
         <Card className="animate-pulse">
           <CardContent className="pt-6">
-            <p className="text-center text-body-bold text-celo-purple text-xl">Loading clue...</p>
+            {isLoadingClue ? (
+              <p className="text-center text-body-bold text-celo-purple text-xl">Loading clue...</p>
+            ) : clueError ? (
+              <div className="space-y-4">
+                <p className="text-center text-body-bold text-celo-orange text-xl">
+                  Error loading clue: {clueError.message || "Unknown error"}
+                </p>
+                <Button
+                  onClick={() => refetchClue()}
+                  className="w-full border-4 transition-premium hover-lift"
+                  size="lg"
+                >
+                  Retry
+                </Button>
+              </div>
+            ) : (
+              <p className="text-center text-body-bold text-celo-purple text-xl">No clue available</p>
+            )}
           </CardContent>
         </Card>
       )}
