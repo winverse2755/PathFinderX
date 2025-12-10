@@ -6,7 +6,7 @@ import { env } from "@/lib/env";
  * @returns The farcaster manifest for the frame
  */
 export async function getFarcasterManifest() {
-  const frameName = "farcaster-miniapp";
+  const frameName = "PathFinderX";
   const appUrl = env.NEXT_PUBLIC_URL;
   const noindex = appUrl.includes("localhost") || appUrl.includes("ngrok") || appUrl.includes("https://dev.");
 
@@ -44,11 +44,11 @@ export async function getFarcasterManifest() {
     miniapp: {
       version: "1",
       name: frameName,
-      iconUrl: `${appUrl}/icon.png`,
+      iconUrl: `${appUrl}/logo.png`,
       homeUrl: appUrl,
-      imageUrl: `${appUrl}/opengraph-image.png`,
+      imageUrl: `${appUrl}/pathfinderx-splash.png`,
       buttonTitle: `Launch App`,
-      splashImageUrl: `${appUrl}/opengraph-image.png`,
+      splashImageUrl: `${appUrl}/pathfinderx-splash.png`,
       splashBackgroundColor: "#FFFFFF",
       webhookUrl: `${appUrl}/api/webhook`,
       // Metadata https://github.com/farcasterxyz/miniapps/discussions/191
@@ -61,9 +61,9 @@ export async function getFarcasterManifest() {
       ogDescription: "Gamified treasure hunt on Celo", // 100 characters, summarize core benefits in 1-2 lines
       screenshotUrls: [
         // 1284 x 2778, visual previews of the app, max 3 screenshots
-        `${appUrl}/opengraph-image.png`,
+        `${appUrl}/pathfinderx-splash.png`,
       ],
-      heroImageUrl: `${appUrl}/opengraph-image.png`, // 1200 x 630px (1.91:1), promotional display image on top of the mini app store
+      heroImageUrl: `${appUrl}/pathfinderx-splash.png`, // 1200 x 630px (1.91:1), promotional display image on top of the mini app store
       noindex,
     },
   };
