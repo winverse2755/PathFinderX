@@ -44,7 +44,7 @@ export async function getFarcasterManifest() {
     miniapp: {
       version: "1",
       name: frameName,
-      iconUrl: `${appUrl}/logo.png`,
+      iconUrl: `${appUrl}/logo.jpg`,
       homeUrl: appUrl,
       imageUrl: `${appUrl}/pathfinderx-splash.png`,
       buttonTitle: `Launch App`,
