@@ -17,14 +17,14 @@ const appUrl = process.env.NEXT_PUBLIC_URL || "http://localhost:3000";
 // Embed metadata for Farcaster sharing
 const frame = {
   version: "1",
-  imageUrl: `${appUrl}/opengraph-image.png`,
+  imageUrl: `${appUrl}/pathfinderx-splash.png`,
   button: {
     title: "Launch PathFinderX",
     action: {
       type: "launch_frame",
       name: "pathfinderx",
       url: appUrl,
-      splashImageUrl: `${appUrl}/icon.png`,
+      splashImageUrl: `${appUrl}/logo.png`,
       splashBackgroundColor: "#0D0D1A",
     },
   },
@@ -36,7 +36,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'PathFinderX',
     description: 'Blockchain treasure hunt game on Celo',
-    images: [`${appUrl}/opengraph-image.png`],
+    images: [`${appUrl}/pathfinderx-splash.png`],
   },
   other: {
     "fc:frame": JSON.stringify(frame),
