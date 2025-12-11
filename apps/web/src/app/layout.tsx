@@ -24,7 +24,7 @@ const frame = {
       type: "launch_frame",
       name: "pathfinderx",
       url: appUrl,
-      splashImageUrl: `${appUrl}/logo.png`,
+      splashImageUrl: `${appUrl}/logo.jpg`,
       splashBackgroundColor: "#0D0D1A",
     },
   },
