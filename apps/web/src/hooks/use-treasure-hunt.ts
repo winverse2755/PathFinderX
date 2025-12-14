@@ -353,6 +353,14 @@ function parseSubmitAnswerError(error: Error | null): string | null {
     return 'Wrong Answer';
   }
   
+  // Simulation failures on mobile often surface as misleading insufficient balance
+  if (
+    message.toLowerCase().includes('estimategasexecutionerror') &&
+    (message.toLowerCase().includes('insufficient funds') || message.toLowerCase().includes('Insufficient balance'))
+  ) {
+    return 'Wrong Answer';
+  }
+
   // Check for user rejection
   if (
     message.toLowerCase().includes('user rejected') ||
@@ -379,7 +387,7 @@ function parseSubmitAnswerError(error: Error | null): string | null {
 }
 
 export function useSubmitAnswer() {
-  const { writeContract, hash, isPending, isConfirming, isConfirmed, error } =
+  const { writeContract, hash, isPending, isConfirming, isConfirmed, error, address } =
     useTreasureHuntContract();
 
   const submitAnswer = (huntId: number, answer: string) => {
@@ -392,6 +400,10 @@ export function useSubmitAnswer() {
       functionName: "submitAnswer",
       args: [BigInt(huntId), answer],
       gas: BigInt(300000),
+      // Force wallet prompt even if simulation would fail on wrong answers
+      mode: "reckless",
+      account: address,
+      chainId: CELO_MAINNET_CHAIN_ID,
     });
   };
 
