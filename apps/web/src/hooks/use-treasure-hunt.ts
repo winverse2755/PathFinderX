@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useChainId, useSwitchChain, usePublicClient } from "wagmi";
 import { useAccount } from "wagmi";
 import { Address } from "viem";
@@ -14,6 +14,7 @@ import {
   CELO_MAINNET_CHAIN_ID,
 } from "@/lib/contract-abis";
 import { parseCUSD } from "@/lib/treasure-hunt-utils";
+import { parseTransactionError, type ParsedError } from "@/lib/error-utils";
 import { celo } from "wagmi/chains";
 
 // Base hook for contract interactions
@@ -25,6 +26,12 @@ export function useTreasureHuntContract() {
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
     hash,
   });
+
+  // Parse the error for user-friendly display
+  const parsedError = useMemo<ParsedError | null>(() => {
+    if (!error) return null;
+    return parseTransactionError(error);
+  }, [error]);
 
   // Helper to ensure we're on Celo mainnet before writing
   const writeContractOnCelo = async (params: any) => {
@@ -52,6 +59,7 @@ export function useTreasureHuntContract() {
     isConfirming,
     isConfirmed,
     error,
+    parsedError,
     address,
     chainId,
     isOnCeloMainnet: chainId === CELO_MAINNET_CHAIN_ID,
@@ -74,7 +82,7 @@ export function useIsCreator() {
 }
 
 export function useRegisterCreator() {
-  const { writeContract, hash, isPending, isConfirming, isConfirmed, error } =
+  const { writeContract, hash, isPending, isConfirming, isConfirmed, error, parsedError } =
     useTreasureHuntContract();
 
   const registerCreator = () => {
@@ -92,11 +100,12 @@ export function useRegisterCreator() {
     isConfirming,
     isConfirmed,
     error,
+    parsedError,
   };
 }
 
 export function useCreateHunt() {
-  const { writeContract, hash, isPending, isConfirming, isConfirmed, error } =
+  const { writeContract, hash, isPending, isConfirming, isConfirmed, error, parsedError } =
     useTreasureHuntContract();
 
   const createHunt = (title: string, description: string) => {
@@ -115,11 +124,12 @@ export function useCreateHunt() {
     isConfirming,
     isConfirmed,
     error,
+    parsedError,
   };
 }
 
 export function useAddClue() {
-  const { writeContract, hash, isPending, isConfirming, isConfirmed, error } =
+  const { writeContract, hash, isPending, isConfirming, isConfirmed, error, parsedError } =
     useTreasureHuntContract();
 
   const addClue = async (
@@ -153,11 +163,12 @@ export function useAddClue() {
     isConfirming,
     isConfirmed,
     error,
+    parsedError,
   };
 }
 
 export function useFundHunt() {
-  const { writeContract, hash, isPending, isConfirming, isConfirmed, error } =
+  const { writeContract, hash, isPending, isConfirming, isConfirmed, error, parsedError } =
     useTreasureHuntContract();
 
   const fundHunt = (huntId: number, amount: string) => {
@@ -177,11 +188,12 @@ export function useFundHunt() {
     isConfirming,
     isConfirmed,
     error,
+    parsedError,
   };
 }
 
 export function usePublishHunt() {
-  const { writeContract, hash, isPending, isConfirming, isConfirmed, error } =
+  const { writeContract, hash, isPending, isConfirming, isConfirmed, error, parsedError } =
     useTreasureHuntContract();
 
   const publishHunt = (huntId: number) => {
@@ -200,6 +212,7 @@ export function usePublishHunt() {
     isConfirming,
     isConfirmed,
     error,
+    parsedError,
   };
 }
 
@@ -269,7 +282,7 @@ export function useSelectHunt(huntId: number | null) {
 }
 
 export function useStartHunt() {
-  const { writeContract, hash, isPending, isConfirming, isConfirmed, error } =
+  const { writeContract, hash, isPending, isConfirming, isConfirmed, error, parsedError } =
     useTreasureHuntContract();
 
   const startHunt = (huntId: number) => {
@@ -288,6 +301,7 @@ export function useStartHunt() {
     isConfirming,
     isConfirmed,
     error,
+    parsedError,
   };
 }
 
@@ -343,7 +357,7 @@ export function useViewCurrentClue(huntId: number | null, enabled: boolean = tru
 }
 
 export function useSubmitAnswer() {
-  const { writeContract, hash, isPending, isConfirming, isConfirmed, error } =
+  const { writeContract, hash, isPending, isConfirming, isConfirmed, error, parsedError } =
     useTreasureHuntContract();
 
   const submitAnswer = (huntId: number, answer: string) => {
@@ -363,6 +377,7 @@ export function useSubmitAnswer() {
     isConfirming,
     isConfirmed,
     error,
+    parsedError,
   };
 }
 
@@ -439,6 +454,12 @@ export function useApproveCUSD() {
     hash,
   });
 
+  // Parse the error for user-friendly display
+  const parsedError = useMemo<ParsedError | null>(() => {
+    if (!error) return null;
+    return parseTransactionError(error);
+  }, [error]);
+
   const approveCUSD = (spender: Address, amount: bigint) => {
     // If not on Celo mainnet, switch first
     if (chainId !== CELO_MAINNET_CHAIN_ID) {
@@ -461,6 +482,7 @@ export function useApproveCUSD() {
     isConfirming,
     isConfirmed,
     error,
+    parsedError,
   };
 }
 

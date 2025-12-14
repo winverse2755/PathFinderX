@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useSelectHunt, useViewCurrentClue, useGetDetailedProgress, useSubmitAnswer, useStartHunt, useIsHuntCreator } from "@/hooks/use-treasure-hunt";
 import { formatCUSD } from "@/lib/treasure-hunt-utils";
+import { parseTransactionError } from "@/lib/error-utils";
 import { MapPin, Sparkles, Target, Trophy, Coins } from "lucide-react";
 
 export default function HuntPage() {
@@ -26,8 +27,8 @@ export default function HuntPage() {
     message: string;
   }>({ type: null, message: "" });
 
-  const { submitAnswer, isPending, isConfirming, isConfirmed, error } = useSubmitAnswer();
-  const { startHunt, isPending: isStartPending, isConfirming: isStartConfirming, isConfirmed: isStartConfirmed } = useStartHunt();
+  const { submitAnswer, isPending, isConfirming, isConfirmed, error, parsedError } = useSubmitAnswer();
+  const { startHunt, isPending: isStartPending, isConfirming: isStartConfirming, isConfirmed: isStartConfirmed, parsedError: startParsedError } = useStartHunt();
 
 
   const handleStartHunt = async () => {
@@ -95,23 +96,44 @@ export default function HuntPage() {
   }, [isConfirmed, refetchProgress, refetchClue]);
 
   useEffect(() => {
-    if (error) {
-      const errorMessage = error.message || error.toString() || "Transaction failed";
+    if (parsedError) {
+      // Don't show user rejections as errors - they just cancelled
+      if (parsedError.isUserRejection) {
+        setSubmissionStatus({ type: null, message: "" });
+        return;
+      }
       setSubmissionStatus({
         type: "error",
-        message: errorMessage,
+        message: parsedError.message,
       });
     }
-  }, [error]);
+  }, [parsedError]);
+
+  // Handle start hunt errors
+  useEffect(() => {
+    if (startParsedError) {
+      // Don't show user rejections as errors - they just cancelled
+      if (startParsedError.isUserRejection) {
+        setSubmissionStatus({ type: null, message: "" });
+        return;
+      }
+      setSubmissionStatus({
+        type: "error",
+        message: startParsedError.message,
+      });
+    }
+  }, [startParsedError]);
 
   useEffect(() => {
     if (clueError) {
-      const errorMessage = clueError.message || clueError.toString() || "Failed to load clue";
-      const debugInfo = address ? ` (Address: ${address.slice(0, 6)}...${address.slice(-4)})` : " (No address)";
-      const progressInfo = progress ? ` | Progress: hasStarted=${progress.hasStarted}, startTime=${progress.startTime}` : " | No progress data";
+      const parsed = parseTransactionError(clueError);
+      // Don't show user rejections as errors
+      if (parsed.isUserRejection) {
+        return;
+      }
       setSubmissionStatus({
         type: "error",
-        message: `${errorMessage}${debugInfo}${progressInfo}`,
+        message: parsed.message || "Failed to load clue",
       });
       console.error("Clue error details:", {
         error: clueError,
@@ -367,7 +389,7 @@ export default function HuntPage() {
                     <span className="text-2xl sm:text-3xl">⚠️</span>
                   </div>
                   <p className="font-game text-xs sm:text-sm text-game-error break-words">
-                    Error loading clue: {clueError.message || "Unknown error"}
+                    Error loading clue: {parseTransactionError(clueError).message || "Unknown error"}
                   </p>
                   <Button onClick={() => refetchClue()} className="hover-lift">
                     Retry
