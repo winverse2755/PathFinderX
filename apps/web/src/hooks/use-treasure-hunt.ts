@@ -384,13 +384,14 @@ export function useSubmitAnswer() {
 
   const submitAnswer = (huntId: number, answer: string) => {
     // Note: The contract hashes the answer internally, so we pass the plain string
-    // Let simulation run - if answer is wrong, it will fail with "Incorrect answer"
-    // which we parse into "Wrong Answer" (saves user gas on wrong answers)
+    // Manual gas limit bypasses wagmi's simulation which would fail on wrong answers
+    // (contract reverts with "Incorrect answer" causing simulation to fail before wallet prompt)
     writeContract({
       address: TREASURE_HUNT_PLAYER_ADDRESS,
       abi: TREASURE_HUNT_PLAYER_ABI,
       functionName: "submitAnswer",
       args: [BigInt(huntId), answer],
+      gas: BigInt(300000),
     });
   };
 
