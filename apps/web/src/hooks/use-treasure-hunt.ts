@@ -342,12 +342,50 @@ export function useViewCurrentClue(huntId: number | null, enabled: boolean = tru
   };
 }
 
+// Helper to parse submitAnswer errors into user-friendly messages
+function parseSubmitAnswerError(error: Error | null): string | null {
+  if (!error) return null;
+  
+  const message = error.message || error.toString();
+  
+  // Check for "Incorrect answer" revert from contract
+  if (message.toLowerCase().includes('incorrect answer')) {
+    return 'Wrong Answer';
+  }
+  
+  // Check for user rejection
+  if (
+    message.toLowerCase().includes('user rejected') ||
+    message.toLowerCase().includes('user denied') ||
+    message.toLowerCase().includes('rejected the request')
+  ) {
+    return null; // Don't show error for user cancellation
+  }
+  
+  // Check for other common contract reverts
+  if (message.includes('Hunt not started')) {
+    return 'Please start the hunt first';
+  }
+  if (message.includes('Hunt already completed')) {
+    return 'You have already completed this hunt';
+  }
+  if (message.includes('No more clues')) {
+    return 'No more clues available';
+  }
+  
+  // Fallback - return cleaned message without stack trace
+  const cleanMessage = message.split('\n')[0].replace(/^Error:\s*/i, '');
+  return cleanMessage.length > 100 ? cleanMessage.substring(0, 100) + '...' : cleanMessage;
+}
+
 export function useSubmitAnswer() {
   const { writeContract, hash, isPending, isConfirming, isConfirmed, error } =
     useTreasureHuntContract();
 
   const submitAnswer = (huntId: number, answer: string) => {
     // Note: The contract hashes the answer internally, so we pass the plain string
+    // Let simulation run - if answer is wrong, it will fail with "Incorrect answer"
+    // which we parse into "Wrong Answer" (saves user gas on wrong answers)
     writeContract({
       address: TREASURE_HUNT_PLAYER_ADDRESS,
       abi: TREASURE_HUNT_PLAYER_ABI,
@@ -356,6 +394,9 @@ export function useSubmitAnswer() {
     });
   };
 
+  // Parse error to show user-friendly message for wrong answers
+  const parsedError = parseSubmitAnswerError(error);
+
   return {
     submitAnswer,
     hash,
@@ -363,6 +404,7 @@ export function useSubmitAnswer() {
     isConfirming,
     isConfirmed,
     error,
+    parsedError,
   };
 }
 

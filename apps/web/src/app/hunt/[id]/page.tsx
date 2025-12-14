@@ -26,7 +26,7 @@ export default function HuntPage() {
     message: string;
   }>({ type: null, message: "" });
 
-  const { submitAnswer, isPending, isConfirming, isConfirmed, error } = useSubmitAnswer();
+  const { submitAnswer, isPending, isConfirming, isConfirmed, parsedError } = useSubmitAnswer();
   const { startHunt, isPending: isStartPending, isConfirming: isStartConfirming, isConfirmed: isStartConfirmed } = useStartHunt();
 
 
@@ -95,14 +95,13 @@ export default function HuntPage() {
   }, [isConfirmed, refetchProgress, refetchClue]);
 
   useEffect(() => {
-    if (error) {
-      const errorMessage = error.message || error.toString() || "Transaction failed";
+    if (parsedError) {
       setSubmissionStatus({
         type: "error",
-        message: errorMessage,
+        message: parsedError,
       });
     }
-  }, [error]);
+  }, [parsedError]);
 
   useEffect(() => {
     if (clueError) {
