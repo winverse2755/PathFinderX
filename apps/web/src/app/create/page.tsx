@@ -19,6 +19,7 @@ import {
 } from "@/hooks/use-treasure-hunt";
 import { formatCUSD, parseCUSD, validateReward } from "@/lib/treasure-hunt-utils";
 import { TREASURE_HUNT_CREATOR_ADDRESS } from "@/lib/contract-abis";
+import { parseTransactionError } from "@/lib/error-utils";
 
 type ClueData = {
   clueText: string;
@@ -43,10 +44,10 @@ export default function CreateHuntPage() {
     useRegisterCreator();
   const { createHunt, isPending: isCreating, isConfirmed: huntCreated } =
     useCreateHunt();
-  const { addClue, isPending: isAddingClue, isConfirmed: clueAdded, error: addClueError } = useAddClue();
-  const { fundHunt, isPending: isFunding, isConfirmed: huntFunded, error: fundErrorHook } = useFundHunt();
+  const { addClue, isPending: isAddingClue, isConfirmed: clueAdded, parsedError: addClueParsedError } = useAddClue();
+  const { fundHunt, isPending: isFunding, isConfirmed: huntFunded, parsedError: fundParsedError } = useFundHunt();
   const { publishHunt, isPending: isPublishing, isConfirmed: huntPublished } = usePublishHunt();
-  const { approveCUSD, isPending: isApproving, error: approveErrorHook } = useApproveCUSD();
+  const { approveCUSD, isPending: isApproving, parsedError: approveParsedError } = useApproveCUSD();
   const { balance } = useCUSDBalance();
 
   const [step, setStep] = useState<"register" | "create" | "clues" | "fund" | "publish">(
@@ -131,9 +132,11 @@ export default function CreateHuntPage() {
     try {
       await addClue(huntId, currentClue.clueText, currentClue.answer, currentClue.reward, currentClue.location);
     } catch (err: any) {
-      const errorMessage = err.message || err.toString() || "Failed to add clue";
-      setAddClueErrorState(errorMessage);
-      console.error("Error adding clue:", err);
+      const parsed = parseTransactionError(err);
+      if (!parsed.isUserRejection) {
+        setAddClueErrorState(parsed.message || "Failed to add clue");
+        console.error("Error adding clue:", err);
+      }
     }
   };
 
@@ -152,11 +155,15 @@ export default function CreateHuntPage() {
   }, [clueAdded]);
 
   useEffect(() => {
-    if (addClueError) {
-      const errorMessage = addClueError.message || addClueError.toString() || "Failed to add clue";
-      setAddClueErrorState(errorMessage);
+    if (addClueParsedError) {
+      // Don't show user rejections as errors
+      if (addClueParsedError.isUserRejection) {
+        setAddClueErrorState(null);
+        return;
+      }
+      setAddClueErrorState(addClueParsedError.message);
     }
-  }, [addClueError]);
+  }, [addClueParsedError]);
 
   const handleFundHunt = async () => {
     if (huntId === null) {
@@ -174,7 +181,10 @@ export default function CreateHuntPage() {
           totalRewards * BigInt(2)
         );
       } catch (err: any) {
-        setApproveError(err.message || "Failed to approve cUSD");
+        const parsed = parseTransactionError(err);
+        if (!parsed.isUserRejection) {
+          setApproveError(parsed.message || "Failed to approve cUSD");
+        }
       }
       return;
     }
@@ -193,23 +203,34 @@ export default function CreateHuntPage() {
     try {
       fundHunt(huntId, formatCUSD(fundingAmount));
     } catch (err: any) {
-      setFundError(err.message || "Failed to fund hunt");
+      const parsed = parseTransactionError(err);
+      if (!parsed.isUserRejection) {
+        setFundError(parsed.message || "Failed to fund hunt");
+      }
     }
   };
 
   useEffect(() => {
-    if (fundErrorHook) {
-      const errorMessage = fundErrorHook.message || fundErrorHook.toString() || "Transaction failed";
-      setFundError(errorMessage);
+    if (fundParsedError) {
+      // Don't show user rejections as errors
+      if (fundParsedError.isUserRejection) {
+        setFundError(null);
+        return;
+      }
+      setFundError(fundParsedError.message);
     }
-  }, [fundErrorHook]);
+  }, [fundParsedError]);
 
   useEffect(() => {
-    if (approveErrorHook) {
-      const errorMessage = approveErrorHook.message || approveErrorHook.toString() || "Approval failed";
-      setApproveError(errorMessage);
+    if (approveParsedError) {
+      // Don't show user rejections as errors
+      if (approveParsedError.isUserRejection) {
+        setApproveError(null);
+        return;
+      }
+      setApproveError(approveParsedError.message);
     }
-  }, [approveErrorHook]);
+  }, [approveParsedError]);
 
   const handlePublish = () => {
     if (huntId === null) {
