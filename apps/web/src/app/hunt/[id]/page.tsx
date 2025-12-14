@@ -27,7 +27,7 @@ export default function HuntPage() {
   }>({ type: null, message: "" });
 
   const { submitAnswer, isPending, isConfirming, isConfirmed, parsedError } = useSubmitAnswer();
-  const { startHunt, isPending: isStartPending, isConfirming: isStartConfirming, isConfirmed: isStartConfirmed } = useStartHunt();
+  const { startHunt, isPending: isStartPending, isConfirming: isStartConfirming, isConfirmed: isStartConfirmed, error: startError } = useStartHunt();
 
 
   const handleStartHunt = async () => {
@@ -94,6 +94,7 @@ export default function HuntPage() {
     }
   }, [isConfirmed, refetchProgress, refetchClue]);
 
+  // Handle submit answer errors (parsedError is already a user-friendly string or null)
   useEffect(() => {
     if (parsedError) {
       setSubmissionStatus({
@@ -103,14 +104,37 @@ export default function HuntPage() {
     }
   }, [parsedError]);
 
+  // Handle start hunt errors
   useEffect(() => {
-    if (clueError) {
-      const errorMessage = clueError.message || clueError.toString() || "Failed to load clue";
-      const debugInfo = address ? ` (Address: ${address.slice(0, 6)}...${address.slice(-4)})` : " (No address)";
-      const progressInfo = progress ? ` | Progress: hasStarted=${progress.hasStarted}, startTime=${progress.startTime}` : " | No progress data";
+    if (startError) {
+      const message = startError.message || "Failed to start hunt";
+      // Check for user rejection - don't show as error
+      if (
+        message.toLowerCase().includes('user rejected') ||
+        message.toLowerCase().includes('user denied')
+      ) {
+        return;
+      }
       setSubmissionStatus({
         type: "error",
-        message: `${errorMessage}${debugInfo}${progressInfo}`,
+        message: message.split('\n')[0].replace(/^Error:\s*/i, ''),
+      });
+    }
+  }, [startError]);
+
+  useEffect(() => {
+    if (clueError) {
+      const message = clueError.message || "Failed to load clue";
+      // Check for user rejection - don't show as error
+      if (
+        message.toLowerCase().includes('user rejected') ||
+        message.toLowerCase().includes('user denied')
+      ) {
+        return;
+      }
+      setSubmissionStatus({
+        type: "error",
+        message: message.split('\n')[0].replace(/^Error:\s*/i, ''),
       });
       console.error("Clue error details:", {
         error: clueError,
@@ -366,7 +390,7 @@ export default function HuntPage() {
                     <span className="text-2xl sm:text-3xl">⚠️</span>
                   </div>
                   <p className="font-game text-xs sm:text-sm text-game-error break-words">
-                    Error loading clue: {clueError.message || "Unknown error"}
+                    Error loading clue: {clueError.message?.split('\n')[0] || "Unknown error"}
                   </p>
                   <Button onClick={() => refetchClue()} className="hover-lift">
                     Retry
