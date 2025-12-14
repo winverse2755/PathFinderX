@@ -19,7 +19,6 @@ import {
 } from "@/hooks/use-treasure-hunt";
 import { formatCUSD, parseCUSD, validateReward } from "@/lib/treasure-hunt-utils";
 import { TREASURE_HUNT_CREATOR_ADDRESS } from "@/lib/contract-abis";
-import { parseTransactionError } from "@/lib/error-utils";
 
 type ClueData = {
   clueText: string;
@@ -44,10 +43,10 @@ export default function CreateHuntPage() {
     useRegisterCreator();
   const { createHunt, isPending: isCreating, isConfirmed: huntCreated } =
     useCreateHunt();
-  const { addClue, isPending: isAddingClue, isConfirmed: clueAdded, parsedError: addClueParsedError } = useAddClue();
-  const { fundHunt, isPending: isFunding, isConfirmed: huntFunded, parsedError: fundParsedError } = useFundHunt();
+  const { addClue, isPending: isAddingClue, isConfirmed: clueAdded, error: addClueError } = useAddClue();
+  const { fundHunt, isPending: isFunding, isConfirmed: huntFunded, error: fundErrorHook } = useFundHunt();
   const { publishHunt, isPending: isPublishing, isConfirmed: huntPublished } = usePublishHunt();
-  const { approveCUSD, isPending: isApproving, parsedError: approveParsedError } = useApproveCUSD();
+  const { approveCUSD, isPending: isApproving, error: approveErrorHook } = useApproveCUSD();
   const { balance } = useCUSDBalance();
 
   const [step, setStep] = useState<"register" | "create" | "clues" | "fund" | "publish">(
@@ -132,9 +131,10 @@ export default function CreateHuntPage() {
     try {
       await addClue(huntId, currentClue.clueText, currentClue.answer, currentClue.reward, currentClue.location);
     } catch (err: any) {
-      const parsed = parseTransactionError(err);
-      if (!parsed.isUserRejection) {
-        setAddClueErrorState(parsed.message || "Failed to add clue");
+      const message = err.message || "Failed to add clue";
+      if (!message.toLowerCase().includes('user rejected') && 
+          !message.toLowerCase().includes('user denied')) {
+        setAddClueErrorState(message.split('\n')[0]);
         console.error("Error adding clue:", err);
       }
     }
@@ -155,15 +155,17 @@ export default function CreateHuntPage() {
   }, [clueAdded]);
 
   useEffect(() => {
-    if (addClueParsedError) {
+    if (addClueError) {
+      const errorMessage = addClueError.message || addClueError.toString() || "Failed to add clue";
       // Don't show user rejections as errors
-      if (addClueParsedError.isUserRejection) {
+      if (errorMessage.toLowerCase().includes('user rejected') || 
+          errorMessage.toLowerCase().includes('user denied')) {
         setAddClueErrorState(null);
         return;
       }
-      setAddClueErrorState(addClueParsedError.message);
+      setAddClueErrorState(errorMessage.split('\n')[0]);
     }
-  }, [addClueParsedError]);
+  }, [addClueError]);
 
   const handleFundHunt = async () => {
     if (huntId === null) {
@@ -181,9 +183,10 @@ export default function CreateHuntPage() {
           totalRewards * BigInt(2)
         );
       } catch (err: any) {
-        const parsed = parseTransactionError(err);
-        if (!parsed.isUserRejection) {
-          setApproveError(parsed.message || "Failed to approve cUSD");
+        const message = err.message || "Failed to approve cUSD";
+        if (!message.toLowerCase().includes('user rejected') && 
+            !message.toLowerCase().includes('user denied')) {
+          setApproveError(message.split('\n')[0]);
         }
       }
       return;
@@ -203,34 +206,39 @@ export default function CreateHuntPage() {
     try {
       fundHunt(huntId, formatCUSD(fundingAmount));
     } catch (err: any) {
-      const parsed = parseTransactionError(err);
-      if (!parsed.isUserRejection) {
-        setFundError(parsed.message || "Failed to fund hunt");
+      const message = err.message || "Failed to fund hunt";
+      if (!message.toLowerCase().includes('user rejected') && 
+          !message.toLowerCase().includes('user denied')) {
+        setFundError(message.split('\n')[0]);
       }
     }
   };
 
   useEffect(() => {
-    if (fundParsedError) {
+    if (fundErrorHook) {
+      const errorMessage = fundErrorHook.message || fundErrorHook.toString() || "Transaction failed";
       // Don't show user rejections as errors
-      if (fundParsedError.isUserRejection) {
+      if (errorMessage.toLowerCase().includes('user rejected') || 
+          errorMessage.toLowerCase().includes('user denied')) {
         setFundError(null);
         return;
       }
-      setFundError(fundParsedError.message);
+      setFundError(errorMessage.split('\n')[0]);
     }
-  }, [fundParsedError]);
+  }, [fundErrorHook]);
 
   useEffect(() => {
-    if (approveParsedError) {
+    if (approveErrorHook) {
+      const errorMessage = approveErrorHook.message || approveErrorHook.toString() || "Approval failed";
       // Don't show user rejections as errors
-      if (approveParsedError.isUserRejection) {
+      if (errorMessage.toLowerCase().includes('user rejected') || 
+          errorMessage.toLowerCase().includes('user denied')) {
         setApproveError(null);
         return;
       }
-      setApproveError(approveParsedError.message);
+      setApproveError(errorMessage.split('\n')[0]);
     }
-  }, [approveParsedError]);
+  }, [approveErrorHook]);
 
   const handlePublish = () => {
     if (huntId === null) {
