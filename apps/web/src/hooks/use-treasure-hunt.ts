@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useChainId, useSwitchChain, usePublicClient } from "wagmi";
+import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useChainId, useSwitchChain, usePublicClient, useSimulateContract } from "wagmi";
 import { useAccount } from "wagmi";
 import { Address } from "viem";
 import {
@@ -390,25 +390,72 @@ export function useSubmitAnswer() {
   const { writeContract, hash, isPending, isConfirming, isConfirmed, error, address } =
     useTreasureHuntContract();
 
+  const [simulationError, setSimulationError] = useState<string | null>(null);
+  const [pendingSubmit, setPendingSubmit] = useState<{
+    args: [bigint, string];
+    resolve: () => void;
+    reject: (err: Error) => void;
+  } | null>(null);
+
+  const { refetch: refetchSimulation, isFetching: isSimulating } = useSimulateContract({
+    address: TREASURE_HUNT_PLAYER_ADDRESS,
+    abi: TREASURE_HUNT_PLAYER_ABI,
+    functionName: "submitAnswer",
+    args: pendingSubmit?.args,
+    account: address,
+    chainId: CELO_MAINNET_CHAIN_ID,
+    // Manual trigger so we can pass dynamic args
+    query: { enabled: false, retry: false },
+  });
+
   const submitAnswer = (huntId: number, answer: string) => {
-    // Note: The contract hashes the answer internally, so we pass the plain string
-    // Manual gas limit bypasses wagmi's simulation which would fail on wrong answers
-    // (contract reverts with "Incorrect answer" causing simulation to fail before wallet prompt)
-    writeContract({
-      address: TREASURE_HUNT_PLAYER_ADDRESS,
-      abi: TREASURE_HUNT_PLAYER_ABI,
-      functionName: "submitAnswer",
-      args: [BigInt(huntId), answer],
-      gas: BigInt(300000),
-      // Force wallet prompt even if simulation would fail on wrong answers
-      mode: "reckless",
-      account: address,
-      chainId: CELO_MAINNET_CHAIN_ID,
+    setSimulationError(null);
+
+    return new Promise<void>((resolve, reject) => {
+      setPendingSubmit({
+        args: [BigInt(huntId), answer],
+        resolve,
+        reject,
+      });
     });
   };
 
+  useEffect(() => {
+    if (!pendingSubmit) return;
+
+    const run = async () => {
+      const { error: simError } = await refetchSimulation();
+
+      if (simError) {
+        const incorrectError = new Error("Incorrect answer");
+        setSimulationError(incorrectError.message);
+        pendingSubmit.reject(incorrectError);
+        setPendingSubmit(null);
+        return;
+      }
+
+      try {
+        await writeContract({
+          address: TREASURE_HUNT_PLAYER_ADDRESS,
+          abi: TREASURE_HUNT_PLAYER_ABI,
+          functionName: "submitAnswer",
+          args: pendingSubmit.args,
+          account: address,
+          chainId: CELO_MAINNET_CHAIN_ID,
+        });
+        pendingSubmit.resolve();
+      } catch (err: any) {
+        pendingSubmit.reject(err);
+      } finally {
+        setPendingSubmit(null);
+      }
+    };
+
+    run();
+  }, [pendingSubmit, refetchSimulation, writeContract, address]);
+
   // Parse error to show user-friendly message for wrong answers
-  const parsedError = parseSubmitAnswerError(error);
+  const parsedError = simulationError ?? parseSubmitAnswerError(error);
 
   return {
     submitAnswer,
@@ -418,6 +465,7 @@ export function useSubmitAnswer() {
     isConfirmed,
     error,
     parsedError,
+    isSimulating,
   };
 }
 

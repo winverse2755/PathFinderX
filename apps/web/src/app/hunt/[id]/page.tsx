@@ -67,7 +67,7 @@ export default function HuntPage() {
     }
 
     try {
-      submitAnswer(huntId, answer);
+      await submitAnswer(huntId, answer);
       setSubmissionStatus({ type: null, message: "" });
     } catch (err: any) {
       setSubmissionStatus({
