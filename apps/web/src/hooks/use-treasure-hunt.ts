@@ -356,7 +356,7 @@ function parseSubmitAnswerError(error: Error | null): string | null {
   // Simulation failures on mobile often surface as misleading insufficient balance
   if (
     message.toLowerCase().includes('estimategasexecutionerror') &&
-    (message.toLowerCase().includes('insufficient funds') || message.toLowerCase().includes('Insufficient balance'))
+    (message.toLowerCase().includes('insufficient funds') || message.toLowerCase().includes('insufficient balance'))
   ) {
     return 'Wrong Answer';
   }
