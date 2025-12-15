@@ -94,6 +94,34 @@ export default function HuntPage() {
     }
   }, [isConfirmed, refetchProgress, refetchClue]);
 
+  // Prompt user to confirm in wallet when transaction is initiated
+  useEffect(() => {
+    if (isPending) {
+      setSubmissionStatus((prev) =>
+        prev.type === "error"
+          ? prev
+          : {
+              type: "success",
+              message: "Check your wallet to confirm",
+            }
+      );
+    }
+  }, [isPending]);
+
+  // Show a neutral state while transaction is broadcasting
+  useEffect(() => {
+    if (isConfirming) {
+      setSubmissionStatus((prev) =>
+        prev.type === "error"
+          ? prev
+          : {
+              type: "success",
+              message: "Submitting transaction...",
+            }
+      );
+    }
+  }, [isConfirming]);
+
   // Handle submit answer errors (parsedError is already a user-friendly string or null)
   useEffect(() => {
     if (parsedError) {
